@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zafra — Flujo agregar movimiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+    --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scrollbar-width:thin; scrollbar-color:#2C2C2F transparent;}
+  ::-webkit-scrollbar{width:6px; height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2C2C2F; border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#57575F;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; padding:44px 24px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-wrap:wrap; gap:26px; align-items:flex-start; justify-content:center;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:12px;}
+  .step-num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; border-radius:50%; background:var(--lime); color:var(--lime-text);
+    font-size:10px; font-weight:700; margin-right:6px;
+  }
+
+  .phone-frame{width:340px; height:738px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .phone-screen{background:var(--bg); width:100%; height:100%; border-radius:33px; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:90px; height:20px; background:#000; border-radius:12px; z-index:6;}
+  .status-row{display:flex; justify-content:space-between; padding:14px 20px 4px; font-size:11px; color:var(--text-2); font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- STEP 1: FAB radial menu ---------- */
+  .dim-bg{flex:1; position:relative; background:linear-gradient(180deg, #131313, #0f0f10);}
+  .fake-dashboard{padding:18px; opacity:0.35;}
+  .fake-line{height:10px; background:var(--card); border-radius:6px; margin-bottom:10px; width:70%;}
+  .fake-card{height:90px; background:var(--card); border-radius:16px; margin-bottom:12px;}
+  .fake-row{height:44px; background:var(--card); border-radius:12px; margin-bottom:8px;}
+
+  .radial-menu{position:absolute; bottom:118px; right:26px; display:flex; flex-direction:column; align-items:flex-end; gap:12px;}
+  .radial-opt{display:flex; align-items:center; gap:10px;}
+  .radial-label{background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:12px; font-size:12px; font-weight:500;}
+  .radial-btn{width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 6px 16px rgba(0,0,0,0.4);}
+  .radial-btn.ingreso{background:var(--lime); color:var(--lime-text);}
+  .radial-btn.egreso{background:var(--coral); color:#2b0906;}
+  .radial-btn.deuda{background:var(--yellow); color:#2b2000;}
+  .radial-btn.meta{background:var(--lavender); color:#1c1330;}
+
+  .fab-row{position:absolute; bottom:26px; right:26px;}
+  .fab-x{width:58px; height:58px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-1); font-size:24px;}
+
+  /* ---------- STEP 2: amount + keypad ---------- */
+  .sheet-hdr{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 6px;}
+  .sheet-close{width:32px; height:32px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:14px;}
+  .sheet-title{font-size:13.5px; font-weight:600; color:var(--text-2);}
+
+  .type-toggle{display:flex; gap:8px; margin:14px 18px 0;}
+  .type-pill{flex:1; text-align:center; padding:10px 0; border-radius:16px; font-size:12.5px; font-weight:600; background:var(--card); color:var(--text-2); border:1px solid var(--line);}
+  .type-pill.active-eg{background:var(--coral-dim); color:var(--coral); border-color:var(--coral);}
+  .type-pill.active-in{background:var(--lime-dim); color:var(--lime); border-color:var(--lime);}
+
+  .amount-zone{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 20px;}
+  .amount-display{font-size:44px; font-weight:700; font-family:'Space Grotesk',sans-serif; display:flex; align-items:baseline; gap:4px;}
+  .amount-display .cur{font-size:18px; color:var(--text-3); font-weight:500;}
+  .amount-cursor{width:2px; height:34px; background:var(--coral); margin-left:2px; animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .mic-btn{margin-top:16px; width:40px; height:40px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:16px;}
+
+  .keypad{padding:6px 20px 18px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .key{
+    height:56px; border-radius:16px; background:var(--card); display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:500; font-family:'JetBrains Mono',monospace;
+  }
+  .key.op{color:var(--text-2); font-size:16px;}
+  .key.go{background:var(--coral); color:#2b0906; font-family:'Inter',sans-serif; font-weight:700; font-size:14px;}
+
+  /* ---------- STEP 3: details ---------- */
+  .scroll3{flex:1; overflow-y:auto; padding:4px 18px 20px;}
+  .amount-mini{text-align:center; padding:10px 0 18px;}
+  .amount-mini .v{font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .amount-mini .t{font-size:11px; color:var(--coral); margin-top:2px;}
+
+  .field-label{font-size:11px; color:var(--text-2); margin:14px 0 8px; text-transform:uppercase; letter-spacing:0.08em;}
+  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .cat-chip{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 4px; border-radius:14px; background:var(--card); border:1px solid var(--line); font-size:9.5px; color:var(--text-2);}
+  .cat-chip.sel{background:var(--coral-dim); border-color:var(--coral); color:var(--coral);}
+  .cat-chip i{font-size:17px;}
+
+  .input-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .input-row i{color:var(--text-3); font-size:16px;}
+  .input-row input, .input-row .fake-input{background:none; border:none; color:var(--text-1); font-size:13px; flex:1; outline:none;}
+  .input-row .fake-input.placeholder{color:var(--text-3);}
+
+  .wallet-scroll{display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; scrollbar-width:thin; scrollbar-color:var(--line) transparent;}
+  .wallet-scroll::-webkit-scrollbar{height:4px;}
+  .wallet-scroll::-webkit-scrollbar-track{background:transparent;}
+  .wallet-scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  .wallet-scroll::-webkit-scrollbar-thumb:hover{background:var(--text-3);}
+
+  .scroll3{scrollbar-width:thin; scrollbar-color:var(--line) transparent;}
+  .scroll3::-webkit-scrollbar{width:4px;}
+  .scroll3::-webkit-scrollbar-track{background:transparent;}
+  .scroll3::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  .scroll3::-webkit-scrollbar-thumb:hover{background:var(--text-3);}
+
+  .wallet-chip{
+    flex-shrink:0; width:88px; background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+    padding:12px 10px; text-align:center;
+  }
+  .wallet-chip i{font-size:18px; color:var(--text-2);}
+  .wallet-chip.sel{background:var(--coral-dim); border-color:var(--coral);}
+  .wallet-chip.sel i{color:var(--coral);}
+  .wname{font-size:10.5px; margin-top:6px; color:var(--text-1);}
+  .wbal{font-size:9.5px; color:var(--text-3); margin-top:2px;}
+  .wallet-hint{display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text-3); margin-top:8px;}
+
+  .breakdown-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-top:14px;}
+  .bd-row{display:flex; justify-content:space-between; font-size:12px; padding:5px 0;}
+  .bd-row.muted{color:var(--text-3); font-size:11px;}
+  .bd-row.muted i{color:var(--text-3);}
+  .bd-row.total{border-top:1px solid var(--line); margin-top:4px; padding-top:9px; font-weight:600; color:var(--coral);}
+
+  .save-btn{
+    background:var(--lime); color:var(--lime-text); border-radius:18px; padding:16px;
+    text-align:center; font-weight:700; font-size:14px; margin-top:18px;
+  }
+
+  /* ---------- STEP 4: confirmation ---------- */
+  .confirm-zone{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 30px; text-align:center;}
+  .check-circle{width:78px; height:78px; border-radius:50%; background:var(--lime-dim); border:1.5px solid var(--lime); display:flex; align-items:center; justify-content:center; font-size:34px; color:var(--lime); margin-bottom:20px;}
+  .confirm-title{font-size:17px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .confirm-sub{font-size:12.5px; color:var(--text-2); margin-top:6px; line-height:1.5;}
+  .confirm-card{background:var(--card); border-radius:16px; padding:14px 16px; margin-top:22px; width:100%; display:flex; align-items:center; gap:12px; text-align:left;}
+  .confirm-card i{width:36px; height:36px; border-radius:50%; background:var(--coral-dim); color:var(--coral); display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .confirm-amt{font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--coral); margin-left:auto;}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div>
+    <div class="device-label"><span class="step-num">1</span>Toca el botón +</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+      <div class="dim-bg">
+        <div class="fake-dashboard">
+          <div class="fake-line"></div>
+          <div class="fake-card"></div>
+          <div class="fake-row"></div>
+          <div class="fake-row"></div>
+          <div class="fake-row"></div>
+        </div>
+
+        <div class="radial-menu">
+          <div class="radial-opt"><div class="radial-label">Aporte a meta</div><div class="radial-btn meta"><i class="ti ti-target-arrow"></i></div></div>
+          <div class="radial-opt"><div class="radial-label">Deuda / crédito</div><div class="radial-btn deuda"><i class="ti ti-scale"></i></div></div>
+          <div class="radial-opt"><div class="radial-label">Egreso</div><div class="radial-btn egreso"><i class="ti ti-arrow-up-right"></i></div></div>
+          <div class="radial-opt"><div class="radial-label">Ingreso</div><div class="radial-btn ingreso"><i class="ti ti-arrow-down-left"></i></div></div>
+        </div>
+        <div class="fab-row"><div class="fab-x"><i class="ti ti-x"></i></div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <div class="device-label"><span class="step-num">2</span>Escribe el monto</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="sheet-hdr">
+        <div class="sheet-close"><i class="ti ti-arrow-left"></i></div>
+        <div class="sheet-title">Nuevo movimiento</div>
+        <div class="sheet-close"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="type-toggle">
+        <div class="type-pill active-in">Ingreso</div>
+        <div class="type-pill active-eg" style="background:var(--coral); color:#2b0906; border-color:var(--coral);">Egreso</div>
+      </div>
+
+      <div class="amount-zone">
+        <div class="amount-display"><span class="cur">$</span>9.000<span class="amount-cursor"></span></div>
+        <div class="mic-btn"><i class="ti ti-microphone-2"></i></div>
+      </div>
+
+      <div class="keypad">
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+        <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+        <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+        <div class="key op"><i class="ti ti-backspace"></i></div><div class="key">0</div><div class="key go">Siguiente</div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <div class="device-label"><span class="step-num">3</span>Completa los detalles</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="sheet-hdr">
+        <div class="sheet-close"><i class="ti ti-arrow-left"></i></div>
+        <div class="sheet-title">Detalles del egreso</div>
+        <div class="sheet-close"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="scroll3">
+        <div class="amount-mini"><div class="v mono">$9.000</div><div class="t">Egreso</div></div>
+
+        <div class="field-label">Categoría</div>
+        <div class="cat-grid">
+          <div class="cat-chip sel"><i class="ti ti-utensils"></i>Comida</div>
+          <div class="cat-chip"><i class="ti ti-bike"></i>Transp.</div>
+          <div class="cat-chip"><i class="ti ti-home"></i>Vivienda</div>
+          <div class="cat-chip"><i class="ti ti-dots"></i>Otro</div>
+        </div>
+
+        <div class="field-label">Detalles</div>
+        <div class="input-row"><i class="ti ti-pencil"></i><span class="fake-input">Monster</span></div>
+        <div class="input-row"><i class="ti ti-map-pin"></i><span class="fake-input">Minimercado</span></div>
+        <div class="input-row"><i class="ti ti-calendar"></i><span class="fake-input">Hoy · 4 ago 2026</span></div>
+
+        <div class="field-label">Billetera <span style="color:var(--coral); text-transform:none; letter-spacing:0;">· obligatorio</span></div>
+        <div class="wallet-scroll">
+          <div class="wallet-chip"><i class="ti ti-cash"></i><div class="wname">Efectivo</div><div class="wbal mono">$180K</div></div>
+          <div class="wallet-chip sel"><i class="ti ti-brand-nequi" style="font-family:'Inter'; font-style:normal;">N</i><div class="wname">Nequi</div><div class="wbal mono">$612K</div></div>
+          <div class="wallet-chip"><i class="ti ti-building-bank"></i><div class="wname">Bancolombia</div><div class="wbal mono">$1.2M</div></div>
+          <div class="wallet-chip"><i class="ti ti-device-mobile"></i><div class="wname">Daviplata</div><div class="wbal mono">$95K</div></div>
+        </div>
+
+        <div class="breakdown-card">
+          <div class="bd-row"><span>Egreso</span><span class="mono">$9.000</span></div>
+          <div class="bd-row muted"><span>4x1000 <i class="ti ti-info-circle" style="font-size:11px"></i></span><span class="mono">$36</span></div>
+          <div class="bd-row total"><span>Total a descontar de Nequi</span><span class="mono">$9.036</span></div>
+        </div>
+
+        <div class="save-btn">Guardar egreso</div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <div class="device-label"><span class="step-num">4</span>Confirmación</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="confirm-zone">
+        <div class="check-circle"><i class="ti ti-check"></i></div>
+        <div class="confirm-title">¡Movimiento guardado!</div>
+        <div class="confirm-sub">Se descontaron $9.036 de Nequi ($9.000 + $36 de 4x1000) y ya se sumó a tu presupuesto de Comida.</div>
+
+        <div class="confirm-card">
+          <i class="ti ti-utensils"></i>
+          <div>
+            <div style="font-size:12.5px; font-weight:500;">Monster</div>
+            <div style="font-size:10.5px; color:var(--text-3);">Comida · Minimercado · Nequi</div>
+          </div>
+          <div class="confirm-amt">–$9.036</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+</body>
+</html>

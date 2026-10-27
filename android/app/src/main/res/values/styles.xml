@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:background">@drawable/splash</item>
+    </style>
+
+    <!-- Ventanita flotante de "Agregar rápido" desde el widget — translúcida
+    a nivel de Android (sin fondo propio, sin splash, sin animación de
+    pantalla completa), el "diálogo" en sí lo pinta React/CSS encima (mismo
+    componente CenterModal que ya usa el resto de la app), no una vista
+    nativa. Así se ve idéntica en cualquier tamaño de pantalla sin tener que
+    calcular dimensiones de ventana en Java. Animation.Dialog le da la
+    entrada/salida suave típica de un diálogo en vez del slide de pantalla
+    completa que usa MainActivity. -->
+    <style name="Theme.QuickAdd" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <!-- Como QuickAddActivity es una tarea NUEVA (taskAffinity=""), esto
+        puede disparar la API de splash nativa de Android 12+ (distinta al
+        plugin de Capacitor, que ya se apaga desde AgregarRapido.tsx) — esa
+        API muestra su propio fondo por defecto en el arranque en frío de
+        cualquier tarea nueva, y a veces no compagina bien con una ventana
+        translúcida. Estos 3 atributos son ignorados sin problema en
+        versiones de Android que no los reconocen (no rompe nada ahí), y en
+        Android 12+ dejan ese splash nativo también transparente. -->
+        <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+    </style>
+    <!-- VozActivity: totalmente invisible, solo se ve la burbuja de dictado
+    de Google encima de la pantalla de inicio. Activity "pura" (no AppCompat),
+    por eso hereda del tema translúcido del sistema. -->
+    <style name="Theme.Voz" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoDisplay">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

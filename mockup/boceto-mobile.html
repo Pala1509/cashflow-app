@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Vanta Finanzas — Boceto móvil / tablet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --void:#0A0A0C;
+    --carbon:#141418;
+    --carbon-2:#1B1B21;
+    --line:#2A2A31;
+    --text-1:#F1F1EF;
+    --text-2:#96969E;
+    --text-3:#57575F;
+    --ingreso:#3DDC84;
+    --ingreso-dim:#1E5E43;
+    --egreso:#FF6B5E;
+    --egreso-dim:#6E2E28;
+    --gold:#E8B84B;
+    --gold-dim:#5C4A22;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:#08080a;
+    color:var(--text-1);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:40px 24px;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  .stage{
+    display:flex; flex-wrap:wrap; gap:36px; align-items:flex-start; justify-content:center;
+  }
+  .device-label{
+    text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--text-3); margin-bottom:12px;
+  }
+
+  /* ---------- PHONE FRAME ---------- */
+  .phone-frame{
+    width:390px; height:820px;
+    background:#000;
+    border-radius:46px;
+    padding:12px;
+    box-shadow:0 0 0 1px #232326;
+  }
+  .phone-screen{
+    background:var(--void);
+    width:100%; height:100%;
+    border-radius:34px;
+    overflow:hidden;
+    position:relative;
+    display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:100px; height:22px; background:#000; border-radius:14px; z-index:5;
+  }
+  .status-row{
+    display:flex; justify-content:space-between; padding:16px 22px 4px;
+    font-size:12px; color:var(--text-2); font-family:'JetBrains Mono',monospace;
+  }
+
+  .phone-scroll{
+    flex:1; overflow-y:auto; padding:14px 20px 100px;
+  }
+
+  .p-greet-label{font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:2px;}
+  .p-greet{font-size:19px; font-weight:500; font-family:'Space Grotesk',sans-serif;}
+  .p-greet span{color:var(--text-2); font-weight:400; font-size:14px; font-family:'Inter',sans-serif;}
+
+  .p-balance{
+    margin-top:16px; background:var(--carbon); border:1px solid var(--line);
+    border-radius:20px; padding:20px;
+  }
+  .p-balance-label{font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3);}
+  .p-balance-num{font-size:30px; font-weight:500; font-family:'Space Grotesk',sans-serif; margin-top:4px;}
+  .p-delta{
+    display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:var(--ingreso);
+    background:rgba(61,220,132,0.1); border:1px solid var(--ingreso-dim);
+    padding:3px 9px; border-radius:20px; margin-top:8px;
+  }
+  .p-pulse{margin-top:14px; height:50px;}
+
+  .p-quick{display:flex; gap:10px; margin-top:16px;}
+  .p-quick-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:var(--carbon); border:1px solid var(--line); border-radius:14px; padding:12px 8px;
+    font-size:11px; color:var(--text-2);
+  }
+  .p-quick-btn i{font-size:18px;}
+  .p-quick-btn.ingreso i{color:var(--ingreso);}
+  .p-quick-btn.egreso i{color:var(--egreso);}
+  .p-quick-btn.deuda i{color:var(--gold);}
+
+  .p-metrics{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;}
+  .p-metric{background:var(--carbon); border:1px solid var(--line); border-radius:14px; padding:13px 14px;}
+  .p-metric-label{font-size:10.5px; color:var(--text-2);}
+  .p-metric-val{font-size:16px; font-weight:500; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+
+  .p-section-head{display:flex; justify-content:space-between; align-items:center; margin:22px 0 10px;}
+  .p-section-title{font-size:13.5px; font-weight:500;}
+  .p-section-link{font-size:11px; color:var(--text-2);}
+
+  .p-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .p-row:last-child{border-bottom:none;}
+  .p-row-left{display:flex; align-items:center; gap:11px;}
+  .p-dot{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px;}
+  .p-desc{font-size:13px;}
+  .p-meta{font-size:10.5px; color:var(--text-3); margin-top:1px;}
+  .p-amt{font-family:'JetBrains Mono',monospace; font-size:12.5px;}
+  .p-amt.pos{color:var(--ingreso);}
+  .p-amt.neg{color:var(--egreso);}
+
+  .p-goal{margin-bottom:14px;}
+  .p-goal-top{display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;}
+  .p-goal-top .n{color:var(--text-2); font-family:'JetBrains Mono',monospace; font-size:11px;}
+  .p-track{height:5px; border-radius:3px; background:var(--carbon-2); overflow:hidden;}
+  .p-fill{height:100%; border-radius:3px;}
+
+  /* bottom tab bar */
+  .tabbar{
+    position:absolute; bottom:0; left:0; right:0;
+    background:rgba(20,20,24,0.92); backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    display:flex; padding:10px 6px 22px;
+  }
+  .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    font-size:9.5px; color:var(--text-3);
+  }
+  .tab i{font-size:20px;}
+  .tab.active{color:var(--ingreso);}
+  .fab{
+    position:absolute; right:18px; bottom:96px;
+    width:52px; height:52px; border-radius:50%;
+    background:var(--ingreso); color:#06180F;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    box-shadow:0 6px 18px rgba(61,220,132,0.35);
+  }
+
+  /* ---------- TABLET FRAME ---------- */
+  .tablet-frame{
+    width:760px; height:560px;
+    background:#000; border-radius:26px; padding:14px;
+    box-shadow:0 0 0 1px #232326;
+  }
+  .tablet-screen{
+    background:var(--void); width:100%; height:100%; border-radius:14px;
+    overflow:hidden; display:flex;
+  }
+  .t-rail{
+    width:74px; background:var(--carbon); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; padding:20px 0; gap:22px;
+  }
+  .t-rail-mark{
+    width:30px; height:30px; border-radius:8px;
+    background:linear-gradient(135deg, var(--ingreso), var(--gold));
+    display:flex; align-items:center; justify-content:center; color:var(--void); font-weight:600; font-size:13px;
+  }
+  .t-rail-item{
+    width:40px; height:40px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-3); font-size:19px;
+  }
+  .t-rail-item.active{background:var(--carbon-2); color:var(--ingreso);}
+  .t-rail-foot{margin-top:auto;}
+  .t-avatar{width:32px; height:32px; border-radius:50%; background:var(--carbon-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10.5px; color:var(--text-2);}
+
+  .t-main{flex:1; padding:22px 26px; overflow-y:auto;}
+  .t-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;}
+  .t-greet{font-size:17px; font-weight:500; font-family:'Space Grotesk',sans-serif;}
+  .t-greet span{color:var(--text-2); font-weight:400; font-size:13px; font-family:'Inter',sans-serif;}
+  .t-pill{border:1px solid var(--line); border-radius:20px; padding:5px 12px; font-size:11px; color:var(--text-2);}
+
+  .t-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:16px;}
+  .t-balance{background:var(--carbon); border:1px solid var(--line); border-radius:16px; padding:18px 20px;}
+  .t-balance-num{font-size:26px; font-weight:500; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+  .t-pulse{margin-top:10px; height:44px;}
+
+  .t-metrics{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .t-metric{background:var(--carbon); border:1px solid var(--line); border-radius:12px; padding:11px 13px;}
+  .t-metric-label{font-size:10px; color:var(--text-2);}
+  .t-metric-val{font-size:15px; font-weight:500; font-family:'Space Grotesk',sans-serif; margin-top:2px;}
+
+  .t-panel{background:var(--carbon); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+  .t-panel-title{font-size:12.5px; font-weight:500; margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div>
+    <div class="device-label">Boceto — teléfono</div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="notch"></div>
+        <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i> <i class="ti ti-battery-3" style="margin-left:6px"></i></span></div>
+
+        <div class="phone-scroll">
+          <div class="p-greet-label">Vanta finanzas</div>
+          <div class="p-greet">Hola, Felo <span>— así va tu mes</span></div>
+
+          <div class="p-balance">
+            <div class="p-balance-label">Balance total</div>
+            <div class="p-balance-num mono">$4.286.400</div>
+            <div class="p-delta"><i class="ti ti-trending-up" style="font-size:12px"></i> +12.4% vs. julio</div>
+            <div class="p-pulse">
+              <svg viewBox="0 0 350 50" width="100%" height="100%" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#3DDC84" stroke-width="2"
+                  points="0,38 30,34 60,40 90,26 120,32 150,16 180,24 210,10 240,20 270,6 300,14 330,4 350,8" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="p-quick">
+            <div class="p-quick-btn ingreso"><i class="ti ti-plus"></i>Ingreso</div>
+            <div class="p-quick-btn egreso"><i class="ti ti-minus"></i>Egreso</div>
+            <div class="p-quick-btn deuda"><i class="ti ti-scale"></i>Deuda</div>
+          </div>
+
+          <div class="p-metrics">
+            <div class="p-metric">
+              <div class="p-metric-label">Ingresos del mes</div>
+              <div class="p-metric-val mono" style="color:var(--ingreso)">$3.150.000</div>
+            </div>
+            <div class="p-metric">
+              <div class="p-metric-label">Egresos del mes</div>
+              <div class="p-metric-val mono" style="color:var(--egreso)">$1.940.200</div>
+            </div>
+          </div>
+
+          <div class="p-section-head">
+            <div class="p-section-title">Movimientos recientes</div>
+            <div class="p-section-link">Ver todos</div>
+          </div>
+
+          <div class="p-row">
+            <div class="p-row-left">
+              <div class="p-dot" style="background:rgba(61,220,132,0.12); color:#3DDC84"><i class="ti ti-music"></i></div>
+              <div><div class="p-desc">Set privado — Envigado</div><div class="p-meta">Ventas / DJ · hoy</div></div>
+            </div>
+            <div class="p-amt pos mono">+800.000</div>
+          </div>
+          <div class="p-row">
+            <div class="p-row-left">
+              <div class="p-dot" style="background:rgba(255,107,94,0.12); color:#FF6B5E"><i class="ti ti-bike"></i></div>
+              <div><div class="p-desc">Gasolina Kuro</div><div class="p-meta">Transporte · ayer</div></div>
+            </div>
+            <div class="p-amt neg mono">–45.000</div>
+          </div>
+          <div class="p-row">
+            <div class="p-row-left">
+              <div class="p-dot" style="background:rgba(255,107,94,0.12); color:#FF6B5E"><i class="ti ti-device-desktop"></i></div>
+              <div><div class="p-desc">Hosting VantaSystem</div><div class="p-meta">Suscripciones · ayer</div></div>
+            </div>
+            <div class="p-amt neg mono">–68.500</div>
+          </div>
+
+          <div class="p-section-head">
+            <div class="p-section-title">Metas de ahorro</div>
+            <div class="p-section-link">+ Nueva</div>
+          </div>
+
+          <div class="p-goal">
+            <div class="p-goal-top"><span>Estudio Pon Dah Beat</span><span class="n">2.4M / 5M</span></div>
+            <div class="p-track"><div class="p-fill" style="width:48%; background:#3DDC84"></div></div>
+          </div>
+          <div class="p-goal">
+            <div class="p-goal-top"><span>Viaje aniversario</span><span class="n">2.8M / 3.2M</span></div>
+            <div class="p-track"><div class="p-fill" style="width:87%; background:#3DDC84"></div></div>
+          </div>
+        </div>
+
+        <div class="fab"><i class="ti ti-plus"></i></div>
+
+        <div class="tabbar">
+          <div class="tab active"><i class="ti ti-chart-line"></i>Inicio</div>
+          <div class="tab"><i class="ti ti-list"></i>Movs</div>
+          <div class="tab"><i class="ti ti-scale"></i>Deudas</div>
+          <div class="tab"><i class="ti ti-target-arrow"></i>Metas</div>
+          <div class="tab"><i class="ti ti-dots"></i>Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="device-label">Boceto — tablet</div>
+    <div class="tablet-frame">
+      <div class="tablet-screen">
+        <div class="t-rail">
+          <div class="t-rail-mark">V</div>
+          <div class="t-rail-item active"><i class="ti ti-chart-line"></i></div>
+          <div class="t-rail-item"><i class="ti ti-arrow-down-left"></i></div>
+          <div class="t-rail-item"><i class="ti ti-arrow-up-right"></i></div>
+          <div class="t-rail-item"><i class="ti ti-scale"></i></div>
+          <div class="t-rail-item"><i class="ti ti-target-arrow"></i></div>
+          <div class="t-rail-item"><i class="ti ti-chart-pie"></i></div>
+          <div class="t-rail-foot"><div class="t-avatar">FD</div></div>
+        </div>
+
+        <div class="t-main">
+          <div class="t-top">
+            <div>
+              <div class="p-greet-label">Vanta finanzas</div>
+              <div class="t-greet">Hola, Felo <span>— así va tu mes</span></div>
+            </div>
+            <div class="t-pill">Agosto 2026</div>
+          </div>
+
+          <div class="t-grid">
+            <div class="t-balance">
+              <div class="p-balance-label">Balance total</div>
+              <div class="t-balance-num mono">$4.286.400</div>
+              <div class="p-delta"><i class="ti ti-trending-up" style="font-size:12px"></i> +12.4%</div>
+              <div class="t-pulse">
+                <svg viewBox="0 0 400 44" width="100%" height="100%" preserveAspectRatio="none">
+                  <polyline fill="none" stroke="#3DDC84" stroke-width="2"
+                    points="0,34 40,30 80,36 120,22 160,28 200,12 240,20 280,8 320,16 360,4 400,10" />
+                </svg>
+              </div>
+              <div class="t-metrics">
+                <div class="t-metric"><div class="t-metric-label">Ingresos</div><div class="t-metric-val mono" style="color:var(--ingreso)">$3.15M</div></div>
+                <div class="t-metric"><div class="t-metric-label">Egresos</div><div class="t-metric-val mono" style="color:var(--egreso)">$1.94M</div></div>
+              </div>
+            </div>
+
+            <div class="t-panel">
+              <div class="t-panel-title">Metas de ahorro</div>
+              <div class="p-goal">
+                <div class="p-goal-top"><span>Estudio Pon Dah Beat</span><span class="n">48%</span></div>
+                <div class="p-track"><div class="p-fill" style="width:48%; background:#3DDC84"></div></div>
+              </div>
+              <div class="p-goal">
+                <div class="p-goal-top"><span>Fondo VantaSystem</span><span class="n">36%</span></div>
+                <div class="p-track"><div class="p-fill" style="width:36%; background:#E8B84B"></div></div>
+              </div>
+              <div class="p-goal" style="margin-bottom:0">
+                <div class="p-goal-top"><span>Viaje aniversario</span><span class="n">87%</span></div>
+                <div class="p-track"><div class="p-fill" style="width:87%; background:#3DDC84"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

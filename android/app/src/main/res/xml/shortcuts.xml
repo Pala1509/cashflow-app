@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Accesos directos al mantener presionado el ícono de CashFlow. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="anotar_voz"
+        android:enabled="true"
+        android:icon="@drawable/ic_mic_shortcut"
+        android:shortcutShortLabel="@string/atajo_voz_corto"
+        android:shortcutLongLabel="@string/atajo_voz_largo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="studio.vantalab.cashflow"
+            android:targetClass="studio.vantalab.cashflow.VozActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="gasto_voz"
+        android:enabled="true"
+        android:icon="@drawable/ic_mic_shortcut"
+        android:shortcutShortLabel="@string/atajo_gasto_corto"
+        android:shortcutLongLabel="@string/atajo_gasto_largo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="studio.vantalab.cashflow"
+            android:targetClass="studio.vantalab.cashflow.VozActivity">
+            <extra android:name="tipo" android:value="egreso" />
+        </intent>
+    </shortcut>
+</shortcuts>

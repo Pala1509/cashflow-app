@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CashFlow — Boceto: cuadrícula en la gráfica</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lavender:#B9A6F5;
+  }
+  *{box-sizing:border-box;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; padding:44px 24px; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-direction:column; align-items:center; gap:46px;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-3); margin-bottom:12px;}
+  .card{width:380px; background:var(--bg); border-radius:20px; padding:20px 18px; border:1px solid var(--line);}
+  .balance-label{font-size:11px; color:var(--text-2);}
+  .balance-num{font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:2px;}
+  .legend{display:flex; gap:14px; margin-top:6px; font-size:10px;}
+  .chart-wrap{position:relative; margin-top:14px; height:120px;}
+  .months{display:flex; justify-content:space-between; margin-top:6px; font-size:9.5px; color:var(--text-3);}
+  .months .now{color:var(--text-1); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ VARIANTE 1: solo líneas horizontales ============ -->
+  <div>
+    <div class="device-label">Variante 1 — solo líneas horizontales</div>
+    <div class="card">
+      <div class="balance-label">Balance total</div>
+      <div class="balance-num mono">$381.899</div>
+      <div class="legend"><span style="color:var(--lime)">● Ingresos</span><span style="color:var(--lavender)">● Egresos</span></div>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 400 120" width="100%" height="120">
+          <line x1="0" y1="15" x2="400" y2="15" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="45" x2="400" y2="45" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="75" x2="400" y2="75" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="105" x2="400" y2="105" stroke="#242426" stroke-width="1"/>
+          <polyline fill="none" stroke="#C6FF4D" stroke-width="2.5" points="0,100 60,92 120,102 180,60 240,80 300,20 340,45 400,15"/>
+        </svg>
+      </div>
+      <div class="months"><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span class="now">Ago</span></div>
+    </div>
+  </div>
+
+  <!-- ============ VARIANTE 2: cuadrícula completa (horizontal + vertical) ============ -->
+  <div>
+    <div class="device-label">Variante 2 — cuadrícula completa</div>
+    <div class="card">
+      <div class="balance-label">Balance total</div>
+      <div class="balance-num mono">$381.899</div>
+      <div class="legend"><span style="color:var(--lime)">● Ingresos</span><span style="color:var(--lavender)">● Egresos</span></div>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 400 120" width="100%" height="120">
+          <line x1="0" y1="15" x2="400" y2="15" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="45" x2="400" y2="45" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="75" x2="400" y2="75" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="105" x2="400" y2="105" stroke="#242426" stroke-width="1"/>
+          <line x1="0" y1="0" x2="0" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="57" y1="0" x2="57" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="114" y1="0" x2="114" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="171" y1="0" x2="171" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="228" y1="0" x2="228" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="285" y1="0" x2="285" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="342" y1="0" x2="342" y2="120" stroke="#242426" stroke-width="1"/>
+          <line x1="400" y1="0" x2="399" y2="120" stroke="#242426" stroke-width="1"/>
+          <polyline fill="none" stroke="#C6FF4D" stroke-width="2.5" points="0,100 60,92 120,102 180,60 240,80 300,20 340,45 400,15"/>
+        </svg>
+      </div>
+      <div class="months"><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span class="now">Ago</span></div>
+    </div>
+  </div>
+
+  <!-- ============ VARIANTE 3: cuadrícula punteada (más sutil) ============ -->
+  <div>
+    <div class="device-label">Variante 3 — punteada (más discreta) + degradado bajo la línea</div>
+    <div class="card">
+      <div class="balance-label">Balance total</div>
+      <div class="balance-num mono">$381.899</div>
+      <div class="legend"><span style="color:var(--lime)">● Ingresos</span><span style="color:var(--lavender)">● Egresos</span></div>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 400 120" width="100%" height="120">
+          <defs>
+            <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#C6FF4D" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#C6FF4D" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="15" x2="400" y2="15" stroke="#2C2C2F" stroke-width="1" stroke-dasharray="2 4"/>
+          <line x1="0" y1="45" x2="400" y2="45" stroke="#2C2C2F" stroke-width="1" stroke-dasharray="2 4"/>
+          <line x1="0" y1="75" x2="400" y2="75" stroke="#2C2C2F" stroke-width="1" stroke-dasharray="2 4"/>
+          <line x1="0" y1="105" x2="400" y2="105" stroke="#2C2C2F" stroke-width="1" stroke-dasharray="2 4"/>
+          <polygon fill="url(#fade)" points="0,100 60,92 120,102 180,60 240,80 300,20 340,45 400,15 400,120 0,120"/>
+          <polyline fill="none" stroke="#C6FF4D" stroke-width="2.5" points="0,100 60,92 120,102 180,60 240,80 300,20 340,45 400,15"/>
+        </svg>
+      </div>
+      <div class="months"><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span class="now">Ago</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

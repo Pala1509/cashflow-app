@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Accesos directos al mantener presionado el ícono (anotar con voz) -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- "Anotar con voz": Activity invisible que solo muestra la burbuja de
+        dictado de Google encima de la pantalla de inicio y guarda el
+        movimiento por la Edge Function siri-movimiento. Tarea propia
+        (taskAffinity="") para no tocar la app si ya estaba abierta.
+        exported=true porque la lanzan los accesos directos del ícono. -->
+        <activity
+            android:name=".VozActivity"
+            android:theme="@style/Theme.Voz"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="false"
+            android:exported="true" />
+
+        <!-- Ventanita flotante de "Agregar rápido" — Activity aparte de
+        MainActivity a propósito (taskAffinity distinto), para que abrir esto
+        desde el widget no interrumpa ni reemplace la app si ya estaba abierta
+        en segundo plano. excludeFromRecents para que no ensucie la lista de
+        apps recientes con una ventanita que se cierra sola en segundos. -->
+        <activity
+            android:name=".QuickAddActivity"
+            android:theme="@style/Theme.QuickAdd"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Widget de pantalla de inicio: balance + botones rápidos de Ingreso/Egreso -->
+        <receiver
+            android:name=".CashFlowWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cashflow_widget_info" />
+        </receiver>
+
+        <!-- Widget pequeño (1x1): solo el micrófono para anotar con voz -->
+        <receiver
+            android:name=".CashFlowVozWidgetProvider"
+            android:label="@string/atajo_voz_corto"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cashflow_widget_voz_info" />
+        </receiver>
+
+        <!-- Widget grande: balance + botones + últimos movimientos -->
+        <receiver
+            android:name=".CashFlowWidgetLargeProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cashflow_widget_large_info" />
+        </receiver>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Necesaria desde Android 13 para pedir permiso de notificaciones en
+    tiempo de ejecución — cubre tanto las locales como las push. Puede que
+    ya viniera incluida por los plugins, pero se deja explícita para no
+    depender de eso. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Android 11+: para poder abrir el dictado por voz de Google desde VozActivity -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+</manifest>

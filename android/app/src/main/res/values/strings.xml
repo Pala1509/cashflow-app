@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CashFlow</string>
+    <string name="title_activity_main">CashFlow</string>
+    <string name="package_name">studio.vantalab.cashflow</string>
+    <string name="custom_url_scheme">studio.vantalab.cashflow</string>
+    <string name="widget_voz_descripcion">Anota un gasto con tu voz sin abrir la app</string>
+    <string name="atajo_voz_corto">Anotar con voz</string>
+    <string name="atajo_voz_largo">Anotar un movimiento con voz</string>
+    <string name="atajo_gasto_corto">Gasto con voz</string>
+    <string name="atajo_gasto_largo">Anotar un gasto con voz</string>
+</resources>

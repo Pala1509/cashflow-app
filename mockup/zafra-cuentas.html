@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zafra — Cuentas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+    --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scrollbar-width:thin; scrollbar-color:#2C2C2F transparent;}
+  ::-webkit-scrollbar{width:6px; height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2C2C2F; border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#57575F;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; padding:44px 24px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-wrap:wrap; gap:26px; align-items:flex-start; justify-content:center;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:12px;}
+  .step-num{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--lime); color:var(--lime-text); font-size:10px; font-weight:700; margin-right:6px;}
+
+  .phone-frame{width:340px; height:738px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .phone-screen{background:var(--bg); width:100%; height:100%; border-radius:33px; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:90px; height:20px; background:#000; border-radius:12px; z-index:6;}
+  .status-row{display:flex; justify-content:space-between; padding:14px 20px 4px; font-size:11px; color:var(--text-2); font-family:'JetBrains Mono',monospace;}
+
+  .hdr{display:flex; align-items:center; justify-content:space-between; padding:12px 18px 4px;}
+  .hdr-btn{width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:14px;}
+  .hdr-title{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif;}
+
+  .scroll{flex:1; overflow-y:auto; padding:6px 18px 24px;}
+
+  /* net worth card */
+  .nw-card{background:var(--card); border-radius:20px; padding:18px 20px; margin-top:8px;}
+  .nw-label{font-size:11.5px; color:var(--text-2);}
+  .nw-val{font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+  .nw-split{display:flex; gap:16px; margin-top:12px;}
+  .nw-item{flex:1;}
+  .nw-item .dot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px;}
+  .nw-item .lbl{font-size:10.5px; color:var(--text-2);}
+  .nw-item .val{font-size:13px; font-family:'JetBrains Mono',monospace; margin-top:2px;}
+
+  .sec-head{display:flex; justify-content:space-between; align-items:center; margin:22px 0 10px;}
+  .sec-title{font-size:13.5px; font-weight:600;}
+  .sec-add{font-size:11.5px; color:var(--lime); display:flex; align-items:center; gap:3px;}
+
+  .acc-card{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:16px; padding:13px 14px; margin-bottom:10px;}
+  .acc-icon{width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .acc-name{font-size:13px; font-weight:500;}
+  .acc-meta{font-size:10.5px; color:var(--text-3); margin-top:1px;}
+  .acc-bal{margin-left:auto; text-align:right;}
+  .acc-bal .v{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500;}
+  .acc-bal .t{font-size:9.5px; color:var(--text-3); margin-top:1px;}
+
+  .debt-bar{height:4px; border-radius:3px; background:var(--card-2); margin-top:8px; overflow:hidden;}
+  .debt-fill{height:100%; border-radius:3px;}
+
+  .fab{
+    position:absolute; right:20px; bottom:26px; width:54px; height:54px; border-radius:50%;
+    background:var(--lime); color:var(--lime-text); display:flex; align-items:center; justify-content:center;
+    font-size:24px; box-shadow:0 8px 20px rgba(198,255,77,0.35);
+  }
+
+  /* overlay + sheet for type selector */
+  .overlay{position:absolute; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; z-index:10;}
+  .bottom-sheet{width:100%; background:var(--bg); border-radius:26px 26px 0 0; border-top:1px solid var(--line); padding:14px 18px 24px;}
+  .sheet-handle{width:36px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 14px;}
+  .sheet-heading{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif; margin-bottom:4px;}
+  .sheet-sub{font-size:11.5px; color:var(--text-2); margin-bottom:16px;}
+
+  .type-opt{display:flex; align-items:center; gap:13px; padding:13px 6px; border-bottom:1px solid var(--line);}
+  .type-opt:last-child{border-bottom:none;}
+  .type-icon{width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .type-name{font-size:13.5px; font-weight:500;}
+  .type-desc{font-size:10.5px; color:var(--text-3); margin-top:1px;}
+  .type-arrow{margin-left:auto; color:var(--text-3);}
+
+  /* form screen */
+  .field-label{font-size:11px; color:var(--text-2); margin:14px 0 8px; text-transform:uppercase; letter-spacing:0.08em;}
+  .input-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .input-row i{color:var(--text-3); font-size:16px;}
+  .input-row .fake-input{background:none; border:none; color:var(--text-1); font-size:13px; flex:1;}
+  .input-row .fake-input.placeholder{color:var(--text-3);}
+  .color-row{display:flex; gap:10px; margin-top:4px;}
+  .color-dot{width:34px; height:34px; border-radius:50%; border:2px solid transparent;}
+  .color-dot.sel{border-color:var(--text-1);}
+  .save-btn{background:var(--lime); color:var(--lime-text); border-radius:18px; padding:16px; text-align:center; font-weight:700; font-size:14px; margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- SCREEN 1: hub -->
+  <div>
+    <div class="device-label"><span class="step-num">1</span>Pantalla "Cuentas"</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="hdr">
+        <div class="hdr-btn"><i class="ti ti-chevron-left"></i></div>
+        <div class="hdr-title">Cuentas</div>
+        <div class="hdr-btn"><i class="ti ti-dots"></i></div>
+      </div>
+
+      <div class="scroll">
+        <div class="nw-card">
+          <div class="nw-label">Patrimonio neto</div>
+          <div class="nw-val mono">$3.786.400</div>
+          <div class="nw-split">
+            <div class="nw-item"><span class="dot" style="background:var(--lime)"></span><span class="lbl">Tienes</span><div class="val" style="color:var(--lime)">$6.386.400</div></div>
+            <div class="nw-item"><span class="dot" style="background:var(--coral)"></span><span class="lbl">Debes</span><div class="val" style="color:var(--coral)">$2.600.000</div></div>
+          </div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Efectivo y cuentas</div>
+          <div class="sec-add"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div>
+        </div>
+
+        <div class="acc-card">
+          <div class="acc-icon" style="background:var(--lime-dim); color:var(--lime)"><i class="ti ti-cash"></i></div>
+          <div><div class="acc-name">Efectivo</div><div class="acc-meta">Billetera física</div></div>
+          <div class="acc-bal"><div class="v">$180.000</div></div>
+        </div>
+        <div class="acc-card">
+          <div class="acc-icon" style="background:var(--lavender-dim); color:var(--lavender)"><i class="ti ti-device-mobile"></i></div>
+          <div><div class="acc-name">Nequi</div><div class="acc-meta">Billetera digital</div></div>
+          <div class="acc-bal"><div class="v">$612.000</div></div>
+        </div>
+        <div class="acc-card">
+          <div class="acc-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-building-bank"></i></div>
+          <div><div class="acc-name">Bancolombia · Ahorros</div><div class="acc-meta">Cuenta bancaria · <span style="color:var(--coral)">4x1000 activo</span></div></div>
+          <div class="acc-bal"><div class="v">$5.594.400</div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Tarjetas de crédito</div>
+          <div class="sec-add"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div>
+        </div>
+        <div class="acc-card" style="flex-direction:column; align-items:stretch;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="acc-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-credit-card"></i></div>
+            <div><div class="acc-name">Tarjeta Bancolombia</div><div class="acc-meta">Cupo $2.400.000</div></div>
+            <div class="acc-bal"><div class="v" style="color:var(--coral)">$1.600.000</div><div class="t">usado</div></div>
+          </div>
+          <div class="debt-bar"><div class="debt-fill" style="width:67%; background:var(--coral)"></div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Deudas &amp; créditos</div>
+          <div class="sec-add"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div>
+        </div>
+        <div class="acc-card">
+          <div class="acc-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-scale"></i></div>
+          <div><div class="acc-name">Préstamo moto Kuro</div><div class="acc-meta">Deuda · vence dic 2026</div></div>
+          <div class="acc-bal"><div class="v" style="color:var(--coral)">$1.000.000</div></div>
+        </div>
+        <div class="acc-card">
+          <div class="acc-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-arrow-back-up"></i></div>
+          <div><div class="acc-name">Préstamo a Kevin</div><div class="acc-meta">Crédito · te deben</div></div>
+          <div class="acc-bal"><div class="v" style="color:var(--yellow)">$500.000</div></div>
+        </div>
+      </div>
+
+      <div class="fab"><i class="ti ti-plus"></i></div>
+    </div></div>
+  </div>
+
+  <!-- SCREEN 2: type selector sheet -->
+  <div>
+    <div class="device-label"><span class="step-num">2</span>Tocas + → eliges el tipo</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+      <div class="hdr"><div class="hdr-btn"><i class="ti ti-chevron-left"></i></div><div class="hdr-title">Cuentas</div><div class="hdr-btn"><i class="ti ti-dots"></i></div></div>
+
+      <div class="overlay">
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-heading">¿Qué quieres agregar?</div>
+          <div class="sheet-sub">Elige el tipo para pedirte los datos correctos</div>
+
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--lime-dim); color:var(--lime)"><i class="ti ti-cash"></i></div>
+            <div><div class="type-name">Efectivo</div><div class="type-desc">Plata física que manejas</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--lavender-dim); color:var(--lavender)"><i class="ti ti-device-mobile"></i></div>
+            <div><div class="type-name">Billetera digital</div><div class="type-desc">Nequi, Daviplata, etc.</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-building-bank"></i></div>
+            <div><div class="type-name">Cuenta bancaria</div><div class="type-desc">Ahorros o corriente</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-credit-card"></i></div>
+            <div><div class="type-name">Tarjeta de crédito</div><div class="type-desc">Cupo y saldo usado</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-scale"></i></div>
+            <div><div class="type-name">Deuda</div><div class="type-desc">Algo que debes pagar</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+          <div class="type-opt">
+            <div class="type-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-arrow-back-up"></i></div>
+            <div><div class="type-name">Crédito</div><div class="type-desc">Algo que te deben</div></div>
+            <i class="ti ti-chevron-right type-arrow"></i>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- SCREEN 3: form for new account -->
+  <div>
+    <div class="device-label"><span class="step-num">3</span>Datos de la cuenta nueva</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="hdr">
+        <div class="hdr-btn"><i class="ti ti-arrow-left"></i></div>
+        <div class="hdr-title">Nueva billetera digital</div>
+        <div class="hdr-btn"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="scroll">
+        <div class="field-label">Nombre</div>
+        <div class="input-row"><i class="ti ti-tag"></i><span class="fake-input">Nequi</span></div>
+
+        <div class="field-label">Saldo actual</div>
+        <div class="input-row"><i class="ti ti-currency-dollar"></i><span class="fake-input">612.000</span></div>
+
+        <div class="field-label">Color e ícono</div>
+        <div class="color-row">
+          <div class="color-dot sel" style="background:var(--lavender)"></div>
+          <div class="color-dot" style="background:var(--lime)"></div>
+          <div class="color-dot" style="background:var(--coral)"></div>
+          <div class="color-dot" style="background:var(--yellow)"></div>
+          <div class="color-dot" style="background:#6EC1FF"></div>
+        </div>
+
+        <div class="field-label">4x1000 en esta cuenta</div>
+        <div class="input-row" style="justify-content:space-between; align-items:flex-start;">
+          <div>
+            <span style="font-size:12.5px; color:var(--text-2);">Descontar 4x1000 en egresos</span>
+            <div style="font-size:10px; color:var(--text-3); margin-top:4px; line-height:1.4;">Se suma automático a cada egreso desde esta cuenta. Actívalo solo si tu banco/billetera lo cobra.</div>
+          </div>
+          <div style="width:38px; height:22px; border-radius:12px; background:var(--lime); position:relative; flex-shrink:0; margin-top:2px;">
+            <div style="width:18px; height:18px; border-radius:50%; background:var(--lime-text); position:absolute; top:2px; right:2px;"></div>
+          </div>
+        </div>
+
+        <div class="save-btn">Guardar cuenta</div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+</body>
+</html>

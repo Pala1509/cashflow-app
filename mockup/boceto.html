@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Vanta Finanzas — Boceto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --void:#0A0A0C;
+    --carbon:#141418;
+    --carbon-2:#1B1B21;
+    --line:#2A2A31;
+    --text-1:#F1F1EF;
+    --text-2:#96969E;
+    --text-3:#57575F;
+    --ingreso:#3DDC84;
+    --ingreso-dim:#1E5E43;
+    --egreso:#FF6B5E;
+    --egreso-dim:#6E2E28;
+    --gold:#E8B84B;
+    --gold-dim:#5C4A22;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--void);
+    color:var(--text-1);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  .shell{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    min-height:100vh;
+  }
+
+  /* SIDEBAR */
+  .sidebar{
+    background:var(--carbon);
+    border-right:1px solid var(--line);
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:32px;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:28px; height:28px; border-radius:6px;
+    background:linear-gradient(135deg, var(--ingreso), var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--void); font-weight:600; font-size:13px;
+  }
+  .brand-text{font-size:15px; letter-spacing:0.02em;}
+  .brand-text small{display:block; font-size:10px; letter-spacing:0.14em; color:var(--text-3); text-transform:uppercase; margin-top:1px;}
+
+  nav{display:flex; flex-direction:column; gap:2px;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:8px;
+    font-size:13.5px; color:var(--text-2);
+    border-left:2px solid transparent;
+  }
+  .nav-item i{font-size:17px; width:18px;}
+  .nav-item.active{
+    background:var(--carbon-2);
+    color:var(--text-1);
+    border-left:2px solid var(--ingreso);
+  }
+  .nav-group-label{
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-3); padding:0 10px; margin:14px 0 4px;
+  }
+
+  .sidebar-foot{
+    margin-top:auto;
+    display:flex; align-items:center; gap:10px;
+    padding:10px; border-radius:8px;
+    border:1px solid var(--line);
+  }
+  .avatar{
+    width:30px; height:30px; border-radius:50%;
+    background:var(--carbon-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:var(--text-2);
+  }
+  .sidebar-foot .name{font-size:12.5px;}
+  .sidebar-foot .role{font-size:10.5px; color:var(--text-3);}
+
+  /* MAIN */
+  main{padding:32px 40px 60px;}
+  .topbar{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:28px;
+  }
+  .greet-label{font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:4px;}
+  .greet{font-size:22px; font-weight:500;}
+  .greet span{color:var(--text-2); font-weight:400;}
+  .month-toggle{
+    display:flex; align-items:center; gap:10px;
+    border:1px solid var(--line); border-radius:20px;
+    padding:6px 14px; font-size:12.5px; color:var(--text-2);
+  }
+
+  /* BALANCE + PULSE */
+  .balance-block{
+    background:var(--carbon);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:24px 26px;
+    margin-bottom:20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .balance-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;}
+  .balance-label{font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3);}
+  .balance-num{font-size:38px; font-weight:500; font-family:'Space Grotesk',sans-serif; letter-spacing:-0.01em;}
+  .balance-delta{
+    font-size:12px; color:var(--ingreso);
+    display:flex; align-items:center; gap:4px;
+    background:rgba(61,220,132,0.1);
+    border:1px solid var(--ingreso-dim);
+    padding:4px 9px; border-radius:20px;
+    margin-top:8px;
+  }
+  .pulse-wrap{margin-top:18px; height:88px;}
+
+  /* METRIC CARDS */
+  .metrics{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+    margin-bottom:24px;
+  }
+  .metric-card{
+    background:var(--carbon); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px;
+  }
+  .metric-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .metric-icon{
+    width:26px; height:26px; border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .metric-icon.ingreso{background:rgba(61,220,132,0.12); color:var(--ingreso);}
+  .metric-icon.egreso{background:rgba(255,107,94,0.12); color:var(--egreso);}
+  .metric-icon.gold{background:rgba(232,184,75,0.12); color:var(--gold);}
+  .metric-icon.neutral{background:var(--carbon-2); color:var(--text-2);}
+  .metric-label{font-size:11.5px; color:var(--text-2);}
+  .metric-value{font-size:21px; font-weight:500; font-family:'Space Grotesk',sans-serif;}
+  .metric-sub{font-size:11px; color:var(--text-3); margin-top:3px;}
+
+  /* CONTENT GRID */
+  .content-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
+  .panel{
+    background:var(--carbon); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px;
+  }
+  .panel-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .panel-title{font-size:14px; font-weight:500;}
+  .panel-link{font-size:12px; color:var(--text-2);}
+
+  /* LEDGER ROWS */
+  .ledger-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 0; border-bottom:1px solid var(--line);
+  }
+  .ledger-row:last-child{border-bottom:none;}
+  .ledger-left{display:flex; align-items:center; gap:12px;}
+  .cat-dot{width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .ledger-desc{font-size:13.5px;}
+  .ledger-meta{font-size:11.5px; color:var(--text-3); margin-top:1px;}
+  .ledger-amt{font-family:'JetBrains Mono',monospace; font-size:13.5px;}
+  .ledger-amt.pos{color:var(--ingreso);}
+  .ledger-amt.neg{color:var(--egreso);}
+
+  /* GOALS */
+  .goal-item{margin-bottom:16px;}
+  .goal-item:last-child{margin-bottom:0;}
+  .goal-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;}
+  .goal-name{font-size:13px;}
+  .goal-nums{font-size:11.5px; color:var(--text-2); font-family:'JetBrains Mono',monospace;}
+  .goal-track{height:6px; border-radius:3px; background:var(--carbon-2); overflow:hidden;}
+  .goal-fill{height:100%; border-radius:3px;}
+
+  /* DEBTS */
+  .debt-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; border:1px solid var(--line); border-radius:10px; margin-bottom:10px;
+  }
+  .debt-row:last-child{margin-bottom:0;}
+  .debt-name{font-size:13px;}
+  .debt-tag{
+    font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
+    padding:2px 8px; border-radius:20px; margin-top:5px; display:inline-block;
+  }
+  .debt-tag.deuda{background:rgba(255,107,94,0.1); color:var(--egreso); border:1px solid var(--egreso-dim);}
+  .debt-tag.credito{background:rgba(232,184,75,0.1); color:var(--gold); border:1px solid var(--gold-dim);}
+  .debt-amt{font-family:'JetBrains Mono',monospace; font-size:14px; text-align:right;}
+  .debt-amt small{display:block; font-size:10.5px; color:var(--text-3); font-family:'Inter',sans-serif;}
+
+  .section-tag{
+    display:inline-block; font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--text-3); border-bottom:1px solid var(--line); padding-bottom:20px; width:100%;
+    margin:44px 0 -8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">V</div>
+      <div class="brand-text">Vanta Finanzas<small>Vanta Lab Studio</small></div>
+    </div>
+
+    <nav>
+      <div class="nav-item active"><i class="ti ti-chart-line"></i>Dashboard</div>
+      <div class="nav-item"><i class="ti ti-arrow-down-left"></i>Ingresos</div>
+      <div class="nav-item"><i class="ti ti-arrow-up-right"></i>Egresos</div>
+      <div class="nav-item"><i class="ti ti-scale"></i>Deudas &amp; créditos</div>
+      <div class="nav-item"><i class="ti ti-target-arrow"></i>Metas de ahorro</div>
+      <div class="nav-item"><i class="ti ti-chart-pie"></i>Presupuestos</div>
+
+      <div class="nav-group-label">Equipo</div>
+      <div class="nav-item"><i class="ti ti-users"></i>Vanta Lab</div>
+      <div class="nav-item"><i class="ti ti-settings"></i>Ajustes</div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="avatar">FD</div>
+      <div>
+        <div class="name">Felo</div>
+        <div class="role">FeloDeejay · Medellín</div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div>
+        <div class="greet-label">Vanta finanzas</div>
+        <div class="greet display">Hola, Felo <span>— así va tu mes</span></div>
+      </div>
+      <div class="month-toggle"><i class="ti ti-chevron-left" style="font-size:14px"></i> Agosto 2026 <i class="ti ti-chevron-right" style="font-size:14px"></i></div>
+    </div>
+
+    <div class="balance-block">
+      <div class="balance-top">
+        <div>
+          <div class="balance-label">Balance total</div>
+          <div class="balance-num mono">$ 4.286.400</div>
+          <div class="balance-delta"><i class="ti ti-trending-up" style="font-size:13px"></i> +12.4% vs. julio</div>
+        </div>
+      </div>
+
+      <div class="pulse-wrap">
+        <svg viewBox="0 0 760 88" width="100%" height="100%" preserveAspectRatio="none">
+          <line x1="0" y1="52" x2="760" y2="52" stroke="#2A2A31" stroke-width="1" stroke-dasharray="2 4"/>
+          <polyline fill="none" stroke="#3DDC84" stroke-width="2"
+            points="0,60 40,55 80,62 120,44 160,50 200,30 240,38 280,22 320,34 360,18 400,28 440,14 480,24 520,10 560,20 600,8 640,16 680,6 720,12 760,4" />
+          <polyline fill="none" stroke="#FF6B5E" stroke-width="1.5" opacity="0.55"
+            points="0,60 40,63 80,66 120,58 160,64 200,52 240,58 280,48 320,55 360,44 400,50 440,40 480,46 520,36 560,42 600,32 640,38 680,28 720,34 760,26" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="metric-top"><div class="metric-icon ingreso"><i class="ti ti-arrow-down-left"></i></div></div>
+        <div class="metric-label">Ingresos del mes</div>
+        <div class="metric-value mono">$3.150.000</div>
+        <div class="metric-sub">7 movimientos</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><div class="metric-icon egreso"><i class="ti ti-arrow-up-right"></i></div></div>
+        <div class="metric-label">Egresos del mes</div>
+        <div class="metric-value mono">$1.940.200</div>
+        <div class="metric-sub">23 movimientos</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><div class="metric-icon gold"><i class="ti ti-scale"></i></div></div>
+        <div class="metric-label">Deudas activas</div>
+        <div class="metric-value mono">$2.100.000</div>
+        <div class="metric-sub">2 pendientes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><div class="metric-icon neutral"><i class="ti ti-target-arrow"></i></div></div>
+        <div class="metric-label">Metas en curso</div>
+        <div class="metric-value mono">68%</div>
+        <div class="metric-sub">promedio de avance</div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Movimientos recientes</div>
+          <div class="panel-link">Ver todos</div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="ledger-left">
+            <div class="cat-dot" style="background:rgba(61,220,132,0.12); color:#3DDC84"><i class="ti ti-music"></i></div>
+            <div><div class="ledger-desc">Set privado — cliente Envigado</div><div class="ledger-meta">Ventas / DJ · hoy</div></div>
+          </div>
+          <div class="ledger-amt pos mono">+ $800.000</div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="ledger-left">
+            <div class="cat-dot" style="background:rgba(255,107,94,0.12); color:#FF6B5E"><i class="ti ti-bike"></i></div>
+            <div><div class="ledger-desc">Gasolina Kuro</div><div class="ledger-meta">Transporte · ayer</div></div>
+          </div>
+          <div class="ledger-amt neg mono">– $45.000</div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="ledger-left">
+            <div class="cat-dot" style="background:rgba(255,107,94,0.12); color:#FF6B5E"><i class="ti ti-device-desktop"></i></div>
+            <div><div class="ledger-desc">Hosting VantaSystem</div><div class="ledger-meta">Suscripciones · ayer</div></div>
+          </div>
+          <div class="ledger-amt neg mono">– $68.500</div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="ledger-left">
+            <div class="cat-dot" style="background:rgba(61,220,132,0.12); color:#3DDC84"><i class="ti ti-wallet"></i></div>
+            <div><div class="ledger-desc">Comisión ventas MPC</div><div class="ledger-meta">Salario · lun</div></div>
+          </div>
+          <div class="ledger-amt pos mono">+ $620.000</div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="ledger-left">
+            <div class="cat-dot" style="background:rgba(255,107,94,0.12); color:#FF6B5E"><i class="ti ti-utensils"></i></div>
+            <div><div class="ledger-desc">Mercado semanal</div><div class="ledger-meta">Comida · lun</div></div>
+          </div>
+          <div class="ledger-amt neg mono">– $132.000</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Metas de ahorro</div>
+            <div class="panel-link">+ Nueva</div>
+          </div>
+
+          <div class="goal-item">
+            <div class="goal-top"><div class="goal-name">Estudio Pon Dah Beat</div><div class="goal-nums">2.4M / 5M</div></div>
+            <div class="goal-track"><div class="goal-fill" style="width:48%; background:#3DDC84"></div></div>
+          </div>
+          <div class="goal-item">
+            <div class="goal-top"><div class="goal-name">Fondo VantaSystem</div><div class="goal-nums">1.1M / 3M</div></div>
+            <div class="goal-track"><div class="goal-fill" style="width:36%; background:#E8B84B"></div></div>
+          </div>
+          <div class="goal-item">
+            <div class="goal-top"><div class="goal-name">Viaje aniversario</div><div class="goal-nums">2.8M / 3.2M</div></div>
+            <div class="goal-track"><div class="goal-fill" style="width:87%; background:#3DDC84"></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Deudas &amp; créditos</div>
+            <div class="panel-link">Ver todo</div>
+          </div>
+
+          <div class="debt-row">
+            <div>
+              <div class="debt-name">Tarjeta Bancolombia</div>
+              <div class="debt-tag deuda">Deuda</div>
+            </div>
+            <div class="debt-amt mono">$1.600.000<small>de $2.400.000</small></div>
+          </div>
+          <div class="debt-row">
+            <div>
+              <div class="debt-name">Préstamo a Kevin</div>
+              <div class="debt-tag credito">Crédito</div>
+            </div>
+            <div class="debt-amt mono">$500.000<small>de $500.000</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-tag">Vista alterna — presupuestos por categoría</div>
+
+    <div class="content-grid" style="margin-top:20px; grid-template-columns:1fr 1fr 1fr;">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Comida</div><div class="panel-link mono">78%</div></div>
+        <div class="goal-track"><div class="goal-fill" style="width:78%; background:#3DDC84"></div></div>
+        <div class="metric-sub" style="margin-top:8px;">$390.000 de $500.000</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Entretenimiento</div><div class="panel-link mono">104%</div></div>
+        <div class="goal-track"><div class="goal-fill" style="width:100%; background:#FF6B5E"></div></div>
+        <div class="metric-sub" style="margin-top:8px; color:#FF6B5E;">$208.000 de $200.000 — excedido</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Transporte</div><div class="panel-link mono">41%</div></div>
+        <div class="goal-track"><div class="goal-fill" style="width:41%; background:#E8B84B"></div></div>
+        <div class="metric-sub" style="margin-top:8px;">$123.000 de $300.000</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

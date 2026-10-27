@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zafra — Prototipo navegable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+    --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scrollbar-width:thin; scrollbar-color:#2C2C2F transparent;}
+  ::-webkit-scrollbar{width:6px; height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2C2C2F; border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#57575F;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center; padding:40px 20px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .hint{font-size:11.5px; color:var(--text-3); text-align:center; max-width:340px; margin-bottom:18px; line-height:1.5;}
+  .hint b{color:var(--text-2);}
+
+  .phone-frame{width:375px; height:812px; background:#000; border-radius:48px; padding:12px; box-shadow:0 0 0 1px #2a2a2c;}
+  .phone-screen{background:var(--bg); width:100%; height:100%; border-radius:36px; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+  .notch{position:absolute; top:10px; left:50%; transform:translateX(-50%); width:100px; height:22px; background:#000; border-radius:14px; z-index:20; pointer-events:none;}
+  .status-row{display:flex; justify-content:space-between; padding:16px 22px 4px; font-size:12px; color:var(--text-2); font-family:'JetBrains Mono',monospace; flex-shrink:0;}
+
+  button, .clk{cursor:pointer; font-family:inherit; border:none; background:none; color:inherit; text-align:inherit;}
+  input{font-family:inherit; color:var(--text-1); background:none; border:none; outline:none; font-size:13px; width:100%;}
+  input::placeholder{color:var(--text-3);}
+
+  /* ---- shared bits ---- */
+  .hdr{display:flex; align-items:center; justify-content:space-between; padding:10px 18px 4px; flex-shrink:0;}
+  .hdr-btn{width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:14px;}
+  .hdr-title{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif;}
+  .scroll{flex:1; overflow-y:auto; padding:6px 20px 100px;}
+  .field-label{font-size:11px; color:var(--text-2); margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.08em;}
+  .input-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .input-row i{color:var(--text-3); font-size:16px;}
+  .save-btn{border-radius:18px; padding:16px; text-align:center; font-weight:700; font-size:14px; margin-top:20px; width:100%;}
+  .step-heading{font-size:16px; font-weight:600; font-family:'Space Grotesk',sans-serif; margin:6px 0 4px;}
+  .step-sub{font-size:11.5px; color:var(--text-2); margin-bottom:16px; line-height:1.5;}
+  .progress-dots{display:flex; gap:5px; padding:0 20px 12px; flex-shrink:0;}
+  .pdot{height:3px; flex:1; border-radius:3px; background:var(--card-2);}
+  .pdot.done{background:var(--lime);}
+
+  .type-opt{display:flex; align-items:center; gap:13px; padding:13px 4px; border-bottom:1px solid var(--line);}
+  .type-opt:last-child{border-bottom:none;}
+  .type-icon{width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .type-name{font-size:13px; font-weight:500;}
+  .type-desc{font-size:10.5px; color:var(--text-3); margin-top:1px;}
+
+  .radio-card{border:1.5px solid var(--line); border-radius:16px; padding:14px 15px; margin-bottom:10px; background:var(--card);}
+  .radio-card.sel{border-color:var(--lime); background:var(--lime-dim);}
+  .radio-top{display:flex; align-items:center; justify-content:space-between;}
+  .radio-name{font-size:13px; font-weight:600;}
+  .radio-check{width:18px; height:18px; border-radius:50%; border:1.5px solid var(--line); flex-shrink:0;}
+  .radio-check.on{border-color:var(--lime); background:var(--lime); position:relative;}
+  .radio-check.on:after{content:''; position:absolute; inset:4px; border-radius:50%; background:var(--lime-text);}
+  .radio-desc{font-size:11px; color:var(--text-2); margin-top:5px; line-height:1.45;}
+
+  .warn-card{background:var(--coral-dim); border:1px solid var(--coral); border-radius:14px; padding:13px 14px; margin-top:6px; display:flex; gap:10px;}
+  .warn-card i{color:var(--coral); font-size:17px; flex-shrink:0; margin-top:1px;}
+  .warn-card .t{font-size:11.5px; color:var(--text-1); line-height:1.5;}
+  .warn-card b{color:var(--coral);}
+
+  /* ---- tab bar ---- */
+  .tabbar{position:absolute; bottom:0; left:0; right:0; background:rgba(19,19,19,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--line); display:flex; padding:10px 6px 22px; align-items:center; z-index:15;}
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:9.5px; color:var(--text-3);}
+  .tab i{font-size:20px;}
+  .tab.active{color:var(--lime);}
+  .tab.fab-slot{position:relative;}
+  .fab{width:52px; height:52px; border-radius:50%; background:var(--lime); color:var(--lime-text); display:flex; align-items:center; justify-content:center; font-size:24px; margin-top:-30px; box-shadow:0 8px 20px rgba(198,255,77,0.35);}
+
+  /* ---- home ---- */
+  .pills{display:flex; gap:8px; margin-bottom:20px;}
+  .pill{padding:9px 16px; border-radius:20px; font-size:12.5px; color:var(--text-2); background:var(--card); border:1px solid var(--line);}
+  .pill.active{background:var(--lime); color:var(--lime-text); font-weight:600; border-color:var(--lime);}
+  .balance-label{font-size:12.5px; color:var(--text-2); margin-bottom:4px;}
+  .balance-num{font-size:32px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .wave-wrap{position:relative; height:130px; margin-top:14px;}
+  .wave-bubble{position:absolute; top:2px; left:44%; transform:translateX(-50%); background:var(--lime); color:var(--lime-text); font-weight:700; font-size:12px; padding:5px 11px; border-radius:13px; font-family:'JetBrains Mono',monospace;}
+  .wave-months{display:flex; justify-content:space-between; margin-top:4px; font-size:10.5px; color:var(--text-3);}
+  .wave-months span.now{color:var(--text-1); font-weight:600;}
+  .wave-legend{display:flex; gap:14px; margin-top:8px;}
+  .wave-legend span{font-size:10.5px; color:var(--text-2); display:flex; align-items:center; gap:5px;}
+  .wave-legend .dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .wave-bubble-egr{position:absolute; bottom:26px; left:44%; transform:translate(-50%,0); background:var(--card-2); border:1px solid var(--lavender); color:var(--lavender); font-weight:700; font-size:10.5px; padding:4px 9px; border-radius:11px; font-family:'JetBrains Mono',monospace;}
+  .metric-row{display:flex; gap:12px; margin-top:20px;}
+  .metric-card{flex:1; background:var(--card); border-radius:18px; padding:15px 16px;}
+  .metric-icon{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; margin-bottom:16px;}
+  .metric-val{font-size:17px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .metric-sub{font-size:10.5px; color:var(--text-2); margin-top:2px;}
+  .sec-head{display:flex; justify-content:space-between; align-items:center; margin:22px 0 10px;}
+  .sec-title{font-size:14px; font-weight:600;}
+  .sec-add{font-size:11.5px; color:var(--lime); display:flex; align-items:center; gap:3px;}
+  .tx-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line);}
+  .tx-row:last-child{border-bottom:none;}
+  .tx-left{display:flex; align-items:center; gap:12px;}
+  .tx-icon{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .tx-name{font-size:13px; font-weight:500;}
+  .tx-meta{font-size:10.5px; color:var(--text-3); margin-top:1px;}
+  .tx-amt{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500;}
+
+  /* ---- cuentas ---- */
+  .nw-card{background:var(--card); border-radius:20px; padding:18px 20px; margin-top:6px;}
+  .nw-label{font-size:11.5px; color:var(--text-2);}
+  .nw-val{font-size:25px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+  .nw-split{display:flex; gap:16px; margin-top:12px;}
+  .nw-item .lbl{font-size:10.5px; color:var(--text-2);}
+  .nw-item .val{font-size:13px; font-family:'JetBrains Mono',monospace; margin-top:2px;}
+  .acc-card{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:16px; padding:13px 14px; margin-bottom:10px;}
+  .acc-icon{width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
+  .acc-name{font-size:13px; font-weight:500;}
+  .acc-meta{font-size:10px; color:var(--text-3); margin-top:1px;}
+  .acc-bal{margin-left:auto; text-align:right; font-family:'JetBrains Mono',monospace; font-size:13px;}
+  .empty-msg{font-size:11.5px; color:var(--text-3); text-align:center; padding:14px 0;}
+
+  /* ---- metas ---- */
+  .donut-wrap{display:flex; justify-content:center; margin:10px 0 6px; position:relative;}
+  .donut-center{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;}
+  .donut-center .lbl{font-size:11px; color:var(--text-2);}
+  .donut-center .val{font-size:19px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:2px;}
+  .goal-card{background:var(--card); border-radius:18px; padding:14px 16px; margin-bottom:12px; display:flex; align-items:center; gap:13px;}
+  .goal-icon{width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
+  .goal-name{font-size:13px; font-weight:600;}
+  .goal-amt{font-size:11.5px; font-family:'JetBrains Mono',monospace;}
+  .goal-track{height:6px; border-radius:3px; background:var(--card-2); overflow:hidden; margin-top:8px;}
+  .goal-fill{height:100%; border-radius:3px;}
+
+  /* ---- add flow overlay ---- */
+  .overlay{position:absolute; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; z-index:30;}
+  .bottom-sheet{width:100%; background:var(--bg); border-radius:26px 26px 0 0; border-top:1px solid var(--line); padding:14px 20px 26px; max-height:85%; display:flex; flex-direction:column; overflow-y:auto;}
+  .sheet-handle{width:36px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 14px; flex-shrink:0;}
+  .sheet-heading{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif;}
+  .radial-menu{position:absolute; bottom:118px; right:26px; display:flex; flex-direction:column; align-items:flex-end; gap:12px; z-index:31;}
+  .radial-opt{display:flex; align-items:center; gap:10px;}
+  .radial-label{background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:12px; font-size:12px; font-weight:500;}
+  .radial-btn{width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 6px 16px rgba(0,0,0,0.4);}
+
+  /* ---- amount screen ---- */
+  .type-toggle{display:flex; gap:8px; margin:14px 20px 0; flex-shrink:0;}
+  .type-pill{flex:1; text-align:center; padding:10px 0; border-radius:16px; font-size:12.5px; font-weight:600; background:var(--card); color:var(--text-2); border:1px solid var(--line);}
+  .amount-zone{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 20px;}
+  .amount-display{font-size:42px; font-weight:700; font-family:'Space Grotesk',sans-serif; display:flex; align-items:baseline; gap:4px;}
+  .amount-display .cur{font-size:18px; color:var(--text-3); font-weight:500;}
+  .keypad{padding:6px 20px 18px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; flex-shrink:0;}
+  .key{height:54px; border-radius:16px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:500; font-family:'JetBrains Mono',monospace;}
+  .key.go{font-family:'Inter',sans-serif; font-weight:700; font-size:14px;}
+  .key:disabled{opacity:0.4;}
+
+  /* ---- details screen ---- */
+  .amount-mini{text-align:center; padding:10px 0 14px;}
+  .amount-mini .v{font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .cat-chip{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 4px; border-radius:14px; background:var(--card); border:1px solid var(--line); font-size:9.5px; color:var(--text-2); text-align:center;}
+  .cat-chip.sel{border-width:1.5px;}
+  .cat-chip i{font-size:17px;}
+  .wallet-scroll{display:flex; gap:10px; overflow-x:auto; padding-bottom:8px;}
+  .wallet-chip{flex-shrink:0; width:84px; background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:11px 8px; text-align:center;}
+  .wallet-chip i{font-size:17px; color:var(--text-2);}
+  .wallet-chip.sel{}
+  .wname{font-size:10px; margin-top:5px;}
+  .wbal{font-size:9px; color:var(--text-3); margin-top:1px;}
+  .breakdown-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-top:14px;}
+  .bd-row{display:flex; justify-content:space-between; font-size:12px; padding:4px 0;}
+  .bd-row.muted{color:var(--text-3); font-size:11px;}
+  .bd-row.total{border-top:1px solid var(--line); margin-top:4px; padding-top:9px; font-weight:600;}
+  .full-cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .full-cat-chip{display:flex; flex-direction:column; align-items:center; gap:7px; padding:13px 6px; border-radius:16px; background:var(--card); border:1px solid var(--line); font-size:10px; color:var(--text-2); text-align:center;}
+  .full-cat-chip.highlight{border-color:var(--coral); background:var(--coral-dim); color:var(--coral);}
+
+  /* ---- confirm ---- */
+  .confirm-zone{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 30px; text-align:center;}
+  .check-circle{width:74px; height:74px; border-radius:50%; background:var(--lime-dim); border:1.5px solid var(--lime); display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--lime); margin-bottom:18px;}
+  .confirm-title{font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .confirm-sub{font-size:12px; color:var(--text-2); margin-top:6px; line-height:1.5;}
+  .confirm-card{background:var(--card); border-radius:16px; padding:14px 16px; margin-top:20px; width:100%; display:flex; align-items:center; gap:12px; text-align:left;}
+  .confirm-card i{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .confirm-amt{font-family:'JetBrains Mono',monospace; font-weight:600; margin-left:auto;}
+  .done-btn{background:var(--lime); color:var(--lime-text); border-radius:18px; padding:15px 40px; text-align:center; font-weight:700; font-size:13.5px; margin-top:26px;}
+
+  /* ---- resumen ---- */
+  .rs-hero{background:var(--card); border-radius:20px; padding:20px; margin-top:6px;}
+  .rs-hero-label{font-size:11.5px; color:var(--text-2);}
+  .rs-hero-val{font-size:28px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+  .rs-hero-bar{height:8px; border-radius:4px; background:var(--card-2); margin-top:14px; overflow:hidden; display:flex;}
+  .rs-hero-split{display:flex; justify-content:space-between; margin-top:8px; font-size:10.5px; color:var(--text-2);}
+  .rs-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;}
+  .rs-mini{background:var(--card); border-radius:16px; padding:14px 15px;}
+  .rs-mini-lbl{font-size:10.5px; color:var(--text-2);}
+  .rs-mini-val{font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:3px;}
+  .rs-block{background:var(--card); border-radius:18px; padding:16px 17px; margin-top:16px;}
+  .rs-block-title{font-size:12.5px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;}
+  .rs-block-title .link{font-size:11px; color:var(--text-2); font-weight:400;}
+  .rs-line{display:flex; align-items:center; justify-content:space-between; padding:7px 0;}
+  .rs-line-left{display:flex; align-items:center; gap:9px; font-size:12px;}
+  .rs-line-left .dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .rs-line-val{font-family:'JetBrains Mono',monospace; font-size:12px;}
+  .rs-empty{font-size:11px; color:var(--text-3); padding:6px 0;}
+  .rs-goal-mini{display:flex; align-items:center; gap:10px; padding:7px 0;}
+  .rs-goal-mini-track{flex:1; height:5px; border-radius:3px; background:var(--card-2); overflow:hidden;}
+  .rs-goal-mini-fill{height:100%; border-radius:3px;}
+  .rs-goal-mini-pct{font-size:10.5px; color:var(--text-2); font-family:'JetBrains Mono',monospace; width:32px; text-align:right; flex-shrink:0;}
+
+  /* ---- profile ---- */
+  .hdr-avatar{width:34px; height:34px; border-radius:50%; background:var(--lime); color:var(--lime-text); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; font-family:'Space Grotesk',sans-serif; flex-shrink:0;}
+  .profile-hero{display:flex; flex-direction:column; align-items:center; padding:14px 0 22px;}
+  .profile-avatar{width:76px; height:76px; border-radius:50%; background:var(--lime); color:var(--lime-text); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif; position:relative;}
+  .profile-avatar .edit-badge{position:absolute; bottom:-2px; right:-2px; width:24px; height:24px; border-radius:50%; background:var(--card); border:2px solid var(--bg); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-2);}
+  .profile-name{font-size:17px; font-weight:700; font-family:'Space Grotesk',sans-serif; margin-top:12px;}
+  .profile-sub{font-size:11.5px; color:var(--text-3); margin-top:2px;}
+
+  .settings-group-label{font-size:10.5px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.09em; margin:18px 4px 8px;}
+  .settings-block{background:var(--card); border-radius:16px; overflow:hidden;}
+  .settings-row{display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid var(--line);}
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row i.left-icon{font-size:16px; color:var(--text-2); width:20px;}
+  .settings-row .label{font-size:13px; flex:1;}
+  .settings-row .value{font-size:11.5px; color:var(--text-3);}
+  .settings-row i.chev{font-size:14px; color:var(--text-3);}
+
+  .logout-btn{display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--coral-dim); background:var(--coral-dim); color:var(--coral); border-radius:16px; padding:14px; font-size:13px; font-weight:600; margin-top:24px;}
+  .delete-link{text-align:center; font-size:11.5px; color:var(--text-3); margin-top:16px;}
+
+  .confirm-sheet-actions{display:flex; gap:10px; margin-top:18px;}
+  .confirm-sheet-actions button{flex:1; border-radius:16px; padding:14px; font-size:13px; font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="hint">Prototipo clicable — navega el flujo completo: <b>Inicio → + → Egreso → monto → categoría/billetera → guardar</b>, y en <b>Cuentas → +</b> crea una cuenta o deuda con la lógica de interés real.</div>
+
+<div class="phone-frame"><div class="phone-screen" id="screen"></div></div>
+
+<script>
+// ============================= DATA =============================
+const COLORS = {
+  lime:{bg:'var(--lime)', dim:'var(--lime-dim)', fg:'var(--lime)', text:'var(--lime-text)'},
+  coral:{bg:'var(--coral)', dim:'var(--coral-dim)', fg:'var(--coral)', text:'#2b0906'},
+  yellow:{bg:'var(--yellow)', dim:'var(--yellow-dim)', fg:'var(--yellow)', text:'#2b2000'},
+  lavender:{bg:'var(--lavender)', dim:'var(--lavender-dim)', fg:'var(--lavender)', text:'#1c1330'},
+  neutral:{bg:'var(--card-2)', dim:'var(--card-2)', fg:'var(--text-2)', text:'var(--text-1)'}
+};
+
+const CATEGORIES = [
+  {id:'comida', nombre:'Comida', icon:'ti-utensils'},
+  {id:'transporte', nombre:'Transporte', icon:'ti-bike'},
+  {id:'vivienda', nombre:'Vivienda', icon:'ti-home'},
+  {id:'suscripciones', nombre:'Suscripciones', icon:'ti-device-desktop'},
+  {id:'entretenimiento', nombre:'Entretenim.', icon:'ti-gamepad-2'},
+  {id:'salud', nombre:'Salud', icon:'ti-heart'},
+  {id:'educacion', nombre:'Educación', icon:'ti-school'},
+  {id:'mascotas', nombre:'Mascotas', icon:'ti-paw'},
+  {id:'ropa', nombre:'Ropa', icon:'ti-shirt'},
+  {id:'regalos', nombre:'Regalos', icon:'ti-gift'},
+  {id:'viajes', nombre:'Viajes', icon:'ti-plane'},
+  {id:'ventas_dj', nombre:'Ventas / DJ', icon:'ti-music'},
+  {id:'salario', nombre:'Salario', icon:'ti-wallet'},
+  {id:'otros', nombre:'Otros', icon:'ti-dots'}
+];
+
+let state = {
+  screen:'home',
+  history:[],
+  accounts:[
+    {id:'efectivo', nombre:'Efectivo', tipo:'efectivo', saldo:180000, icon:'ti-cash', color:'lime', four:false},
+    {id:'nequi', nombre:'Nequi', tipo:'billetera_digital', saldo:612000, icon:'ti-device-mobile', color:'lavender', four:true},
+    {id:'bancolombia', nombre:'Bancolombia · Ahorros', tipo:'cuenta_bancaria', subtipo:'Cuenta de ahorros', saldo:5594400, icon:'ti-building-bank', color:'yellow', four:true},
+  ],
+  cards:[
+    {id:'tc_bancolombia', nombre:'Tarjeta Bancolombia', tipo:'tarjeta_credito', cupo:2400000, usado:1600000, icon:'ti-credit-card', color:'coral', four:true},
+  ],
+  debts:[
+    {id:'kuro', nombre:'Préstamo moto Kuro', tipo:'deuda', monto:1000000, icon:'ti-scale', color:'coral', interesTipo:'sobre_saldo'},
+  ],
+  credits:[
+    {id:'kevin', nombre:'Préstamo a Kevin', tipo:'credito', monto:500000, icon:'ti-arrow-back-up', color:'yellow'},
+  ],
+  goals:[
+    {id:'estudio', nombre:'Estudio Pon Dah Beat', objetivo:5000000, actual:2400000, aporteMensual:300000, color:'lime', icon:'ti-microphone-2'},
+    {id:'vanta', nombre:'Fondo VantaSystem', objetivo:3000000, actual:1080000, aporteMensual:150000, color:'lavender', icon:'ti-server-2'},
+    {id:'viaje', nombre:'Viaje aniversario', objetivo:3200000, actual:2784000, aporteMensual:100000, color:'coral', icon:'ti-heart'},
+  ],
+  ingresosFijos:[
+    {id:'salario', nombre:'Salario base MPC', monto:1800000, dia:30, icon:'ti-wallet'},
+    {id:'dj_fijo', nombre:'Sets DJ recurrentes', monto:400000, dia:15, icon:'ti-music'},
+  ],
+  gastosFijos:[
+    {id:'arriendo', nombre:'Arriendo', monto:900000, dia:5, icon:'ti-home'},
+    {id:'hosting', nombre:'Hosting VantaSystem', monto:68500, dia:12, icon:'ti-device-desktop'},
+    {id:'gym', nombre:'Gimnasio', monto:80000, dia:1, icon:'ti-barbell'},
+    {id:'netflix', nombre:'Streaming (Netflix, etc.)', monto:35000, dia:8, icon:'ti-device-tv'},
+  ],
+  transactions:[
+    {id:1, tipo:'ingreso', monto:800000, desc:'Set privado — Envigado', categoria:'ventas_dj', cuenta:'nequi', fecha:'hoy'},
+    {id:2, tipo:'egreso', monto:68500, desc:'Hosting VantaSystem', categoria:'suscripciones', cuenta:'nequi', fecha:'ayer'},
+    {id:3, tipo:'egreso', monto:45000, desc:'Gasolina Kuro', categoria:'transporte', cuenta:'efectivo', fecha:'ayer'},
+    {id:4, tipo:'ingreso', monto:620000, desc:'Comisión ventas MPC', categoria:'salario', cuenta:'bancolombia', fecha:'lun'},
+    {id:5, tipo:'egreso', monto:132000, desc:'Mercado semanal', categoria:'comida', cuenta:'bancolombia', fecha:'lun'},
+    {id:6, tipo:'egreso', monto:40000, desc:'Almuerzo equipo', categoria:'comida', cuenta:'efectivo', fecha:'lun'},
+    {id:7, tipo:'egreso', monto:25000, desc:'Uber', categoria:'transporte', cuenta:'nequi', fecha:'dom'},
+  ],
+  showMenu:false,
+  showCatSheet:false,
+  showLogoutConfirm:false,
+  add:{tipo:'egreso', amount:'', categoria:null, desc:'', lugar:'', cuenta:null},
+  lastSaved:null,
+  acc:{step:'type', tipo:null, subtipo:null, interes:null, form:{nombre:'', saldo:'', capital:'', tasa:'', periodo:'Mensual'}}
+};
+
+// ============================= HELPERS =============================
+const $ = s => document.querySelector(s);
+const fmt = n => '$' + Math.round(n).toLocaleString('es-CO');
+function nav(screen){ state.history.push(state.screen); state.screen = screen; render(); }
+function back(){ state.screen = state.history.pop() || 'home'; render(); }
+function iconCircle(icon,color,size){ const c=COLORS[color]||COLORS.neutral; return `<div class="acc-icon" style="width:${size}px;height:${size}px;background:${c.dim};color:${c.fg}"><i class="ti ${icon}"></i></div>`; }
+function avatarBtn(){ return `<div class="hdr-avatar clk" onclick="nav('profile')">FD</div>`; }
+
+// Convierte una lista de puntos [x,y] en un path SVG suave (spline Catmull-Rom → Bézier)
+function smoothPath(points){
+  if(points.length < 3) return `M${points.map(p=>p.join(',')).join(' L')}`;
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for(let i=0; i<points.length-1; i++){
+    const p0 = points[i===0 ? i : i-1];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[i+2 === points.length ? i+1 : i+2];
+    const cp1x = p1[0] + (p2[0]-p0[0])/6;
+    const cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6;
+    const cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+const WAVE_DATA = [
+  {mes:'Feb', ingreso:2100000, egreso:1400000},
+  {mes:'Mar', ingreso:1950000, egreso:1600000},
+  {mes:'Abr', ingreso:2400000, egreso:1500000},
+  {mes:'May', ingreso:2200000, egreso:1420000},
+  {mes:'Jun', ingreso:2600000, egreso:1550000},
+  {mes:'Jul', ingreso:2350000, egreso:1480000},
+  {mes:'Ago', ingreso:2800000, egreso:1600000},
+];
+const WAVE_W = 335, WAVE_H = 130, WAVE_PAD_TOP = 14, WAVE_PAD_BOT = 118;
+function buildWavePoints(key){
+  const vals = WAVE_DATA.map(d=>d.ingreso).concat(WAVE_DATA.map(d=>d.egreso));
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const n = WAVE_DATA.length;
+  return WAVE_DATA.map((d,i)=>{
+    const x = +(i * (WAVE_W/(n-1))).toFixed(1);
+    const t = (d[key]-min)/(max-min || 1);
+    const y = +(WAVE_PAD_BOT - t*(WAVE_PAD_BOT-WAVE_PAD_TOP)).toFixed(1);
+    return [x,y];
+  });
+}
+const WAVE_INGRESOS = buildWavePoints('ingreso');
+const WAVE_EGRESOS = buildWavePoints('egreso');
+function shortFmt(n){
+  const sign = n<0 ? '–' : '';
+  n = Math.abs(n);
+  if(n>=1000000) return sign+'$'+(n/1000000).toFixed(1).replace('.0','')+'M';
+  return sign+'$'+Math.round(n/1000)+'K';
+}
+let waveSelected = 3; // índice de 'May' por defecto
+function updateWaveUI(){
+  const wrap = document.getElementById('wave-wrap');
+  if(!wrap) return;
+  const pIng = WAVE_INGRESOS[waveSelected];
+  const pEgr = WAVE_EGRESOS[waveSelected];
+  const d = WAVE_DATA[waveSelected];
+  const vline = document.getElementById('wave-vline');
+  const dot = document.getElementById('wave-dot');
+  const dotEgr = document.getElementById('wave-dot-egr');
+  const bubble = document.getElementById('wave-bubble');
+  const bubbleEgr = document.getElementById('wave-bubble-egr');
+  if(vline){ vline.setAttribute('x1',pIng[0]); vline.setAttribute('x2',pIng[0]); }
+  if(dot){ dot.setAttribute('cx',pIng[0]); dot.setAttribute('cy',pIng[1]); }
+  if(dotEgr){ dotEgr.setAttribute('cx',pEgr[0]); dotEgr.setAttribute('cy',pEgr[1]); }
+  if(bubble){ bubble.style.left = (pIng[0]/WAVE_W*100)+'%'; bubble.textContent = '+'+shortFmt(d.ingreso); }
+  if(bubbleEgr){ bubbleEgr.style.left = (pEgr[0]/WAVE_W*100)+'%'; bubbleEgr.textContent = '–'+shortFmt(d.egreso); }
+  document.querySelectorAll('.wave-months span').forEach((el,i)=>{ el.classList.toggle('now', i===waveSelected); });
+}
+function waveHandleEvent(e){
+  const wrap = document.getElementById('wave-wrap');
+  if(!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const rel = Math.min(1, Math.max(0, (clientX-rect.left)/rect.width));
+  const idx = Math.round(rel*(WAVE_DATA.length-1));
+  if(idx !== waveSelected){ waveSelected = idx; updateWaveUI(); }
+}
+function attachWaveInteractivity(){
+  const wrap = document.getElementById('wave-wrap');
+  if(!wrap) return;
+  let dragging = false;
+  wrap.style.touchAction = 'none';
+  wrap.onpointerdown = e => { dragging = true; waveHandleEvent(e); };
+  wrap.onpointermove = e => { if(dragging) waveHandleEvent(e); };
+  window.onpointerup = () => { dragging = false; };
+  updateWaveUI();
+}
+
+function topCategorias(){
+  const counts = {};
+  state.transactions.filter(t=>t.tipo==='egreso').forEach(t=>{ counts[t.categoria]=(counts[t.categoria]||0)+1; });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>CATEGORIES.find(c=>c.id===e[0]));
+}
+function catInfo(id){ return CATEGORIES.find(c=>c.id===id) || CATEGORIES.find(c=>c.id==='otros'); }
+function accInfo(id){ return state.accounts.find(a=>a.id===id); }
+
+function totalIngresos(){ return state.transactions.filter(t=>t.tipo==='ingreso').reduce((s,t)=>s+t.monto,0); }
+function totalEgresos(){ return state.transactions.filter(t=>t.tipo==='egreso').reduce((s,t)=>s+t.monto,0); }
+function totalCash(){ return state.accounts.reduce((s,a)=>s+a.saldo,0); }
+function totalDeudas(){ return state.debts.reduce((s,d)=>s+d.monto,0) + state.cards.reduce((s,c)=>s+c.usado,0); }
+function totalCreditos(){ return state.credits.reduce((s,c)=>s+c.monto,0); }
+function totalIngresosFijos(){ return state.ingresosFijos.reduce((s,i)=>s+i.monto,0); }
+function totalGastosFijos(){ return state.gastosFijos.reduce((s,g)=>s+g.monto,0); }
+function totalAporteMetas(){ return state.goals.reduce((s,g)=>s+(g.aporteMensual||0),0); }
+function disponibleLibre(){ return totalIngresosFijos() - totalGastosFijos() - totalAporteMetas(); }
+
+// ============================= TAB BAR =============================
+function tabbar(active){
+  return `<div class="tabbar">
+    <div class="tab clk ${active==='home'?'active':''}" onclick="nav('home')"><i class="ti ti-chart-line"></i>Inicio</div>
+    <div class="tab clk ${active==='cuentas'?'active':''}" onclick="nav('cuentas')"><i class="ti ti-wallet"></i>Cuentas</div>
+    <div class="tab fab-slot"><div class="fab clk" onclick="openFab()"><i class="ti ti-plus"></i></div></div>
+    <div class="tab clk ${active==='balance'?'active':''}" onclick="nav('balance')"><i class="ti ti-adjustments-horizontal"></i>Balance</div>
+    <div class="tab clk ${active==='resumen'?'active':''}" onclick="nav('resumen')"><i class="ti ti-layout-dashboard"></i>Resumen</div>
+  </div>`;
+}
+function openFab(){
+  if(state.screen==='cuentas'){ state.acc={step:'type', tipo:null, subtipo:null, interes:null, form:{nombre:'',saldo:'',capital:'',tasa:'',periodo:'Mensual'}}; nav('acc-flow'); }
+  else { state.showMenu = true; render(); }
+}
+
+// ============================= SCREENS =============================
+function screenHome(){
+  const top3 = topCategorias();
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr" style="padding-top:8px;"><div style="width:34px"></div><div class="hdr-title">Resumen</div>${avatarBtn()}</div>
+    <div class="scroll">
+      <div class="pills">
+        <div class="pill active">Todo</div><div class="pill">Ingresos</div><div class="pill">Egresos</div><div class="pill">Ahorros</div>
+      </div>
+      <div class="balance-label">Balance total</div>
+      <div class="balance-num mono">${fmt(totalCash())}</div>
+      <div class="wave-legend">
+        <span><span class="dot" style="background:var(--lime)"></span>Ingresos</span>
+        <span><span class="dot" style="background:var(--lavender)"></span>Egresos</span>
+      </div>
+
+      <div class="wave-wrap" id="wave-wrap">
+        <div class="wave-bubble" id="wave-bubble">+$800K</div>
+        <svg viewBox="0 0 335 130" width="100%" height="100%" preserveAspectRatio="none" style="position:absolute; top:0; left:0;">
+          <defs>
+            <linearGradient id="waveFade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#C6FF4D" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="#C6FF4D" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line id="wave-vline" x1="150" y1="8" x2="150" y2="130" stroke="#C6FF4D" stroke-width="1" opacity="0.3"/>
+          <path d="${smoothPath(WAVE_INGRESOS)} L335,130 L0,130 Z" fill="url(#waveFade)" stroke="none"/>
+          <path d="${smoothPath(WAVE_EGRESOS)}" fill="none" stroke="#B9A6F5" stroke-width="2" stroke-linecap="round"/>
+          <path d="${smoothPath(WAVE_INGRESOS)}" fill="none" stroke="#C6FF4D" stroke-width="2.5" stroke-linecap="round"/>
+          <circle id="wave-dot" cx="150" cy="52" r="5" fill="#C6FF4D"/>
+          <circle id="wave-dot-egr" cx="150" cy="80" r="4" fill="#B9A6F5"/>
+        </svg>
+        <div class="wave-bubble-egr" id="wave-bubble-egr">–$1.4M</div>
+      </div>
+      <div class="wave-months">${WAVE_DATA.map(d=>`<span>${d.mes}</span>`).join('')}</div>
+
+      <div class="metric-row">
+        <div class="metric-card">
+          <div class="metric-icon" style="background:var(--lime-dim); color:var(--lime)"><i class="ti ti-arrow-down-left"></i></div>
+          <div class="metric-val mono">${fmt(totalIngresos())}</div><div class="metric-sub">Ingresos (demo)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon" style="background:var(--lavender-dim); color:var(--lavender)"><i class="ti ti-arrow-up-right"></i></div>
+          <div class="metric-val mono">${fmt(totalEgresos())}</div><div class="metric-sub">Egresos (demo)</div>
+        </div>
+      </div>
+
+      <div class="sec-head"><div class="sec-title">Movimientos recientes</div><div class="sec-add">${state.transactions.length} en total</div></div>
+      ${state.transactions.slice().reverse().slice(0,6).map(t=>{
+        const c = catInfo(t.categoria);
+        const acc = accInfo(t.cuenta);
+        const col = t.tipo==='ingreso' ? 'lime' : 'neutral';
+        return `<div class="tx-row">
+          <div class="tx-left">${iconCircle(c.icon, col, 38)}
+            <div><div class="tx-name">${t.desc}</div><div class="tx-meta">${c.nombre}${acc?(' · '+acc.nombre):''} · ${t.fecha}</div></div>
+          </div>
+          <div class="tx-amt" style="color:${t.tipo==='ingreso'?'var(--lime)':'var(--text-1)'}">${t.tipo==='ingreso'?'+':'–'}${fmt(t.monto)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${tabbar('home')}
+    ${state.showMenu ? radialMenu() : ''}
+  `;
+}
+
+function radialMenu(){
+  return `<div class="radial-menu">
+    <div class="radial-opt"><div class="radial-label">Aporte a meta</div><div class="radial-btn clk" style="background:${COLORS.lavender.bg};color:${COLORS.lavender.text}" onclick="alert('Aportar a meta — mismo patrón que ingreso/egreso, pendiente de bocetar a fondo')"><i class="ti ti-target-arrow"></i></div></div>
+    <div class="radial-opt"><div class="radial-label">Deuda / crédito</div><div class="radial-btn clk" style="background:${COLORS.yellow.bg};color:${COLORS.yellow.text}" onclick="alert('Registrar pago de deuda/crédito — pendiente de bocetar a fondo')"><i class="ti ti-scale"></i></div></div>
+    <div class="radial-opt"><div class="radial-label">Egreso</div><div class="radial-btn clk" style="background:${COLORS.coral.bg};color:${COLORS.coral.text}" onclick="startAdd('egreso')"><i class="ti ti-arrow-up-right"></i></div></div>
+    <div class="radial-opt"><div class="radial-label">Ingreso</div><div class="radial-btn clk" style="background:${COLORS.lime.bg};color:${COLORS.lime.text}" onclick="startAdd('ingreso')"><i class="ti ti-arrow-down-left"></i></div></div>
+  </div>
+  <div style="position:absolute; bottom:26px; right:26px; z-index:31;"><div class="fab-x clk" style="width:52px;height:52px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;" onclick="state.showMenu=false; render();"><i class="ti ti-x"></i></div></div>`;
+}
+
+function startAdd(tipo){
+  state.showMenu = false;
+  state.add = {tipo, amount:'', categoria:null, desc:'', lugar:'', cuenta:null};
+  nav('add-amount');
+}
+
+function screenAddAmount(){
+  const accent = state.add.tipo==='egreso' ? COLORS.coral : COLORS.lime;
+  const displayAmt = state.add.amount ? Number(state.add.amount).toLocaleString('es-CO') : '0';
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr"><div class="hdr-btn clk" onclick="back()"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">Nuevo movimiento</div><div class="hdr-btn clk" onclick="nav('home')"><i class="ti ti-x"></i></div></div>
+
+    <div class="type-toggle">
+      <div class="type-pill clk" style="${state.add.tipo==='ingreso'?`background:${COLORS.lime.dim};color:${COLORS.lime.fg};border-color:${COLORS.lime.fg}`:''}" onclick="state.add.tipo='ingreso'; render();">Ingreso</div>
+      <div class="type-pill clk" style="${state.add.tipo==='egreso'?`background:${COLORS.coral.dim};color:${COLORS.coral.fg};border-color:${COLORS.coral.fg}`:''}" onclick="state.add.tipo='egreso'; render();">Egreso</div>
+    </div>
+
+    <div class="amount-zone">
+      <div class="amount-display" style="color:${accent.fg}"><span class="cur">$</span>${displayAmt}<span style="width:2px;height:32px;background:${accent.fg};margin-left:2px;"></span></div>
+      <div class="hdr-btn" style="margin-top:16px;"><i class="ti ti-microphone-2"></i></div>
+    </div>
+
+    <div class="keypad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<div class="key clk" onclick="pressKey('${n}')">${n}</div>`).join('')}
+      <div class="key clk" onclick="pressKey('back')"><i class="ti ti-backspace"></i></div>
+      <div class="key clk" onclick="pressKey('0')">0</div>
+      <div class="key go clk" style="background:${accent.fg};color:${accent.text}" onclick="confirmAmount()">Siguiente</div>
+    </div>
+  `;
+}
+function pressKey(k){
+  if(k==='back'){ state.add.amount = state.add.amount.slice(0,-1); }
+  else { if(state.add.amount.length<9) state.add.amount += k; }
+  render();
+}
+function confirmAmount(){
+  if(!state.add.amount || Number(state.add.amount)<=0){ return; }
+  nav('add-details');
+}
+
+function screenAddDetails(){
+  const accent = state.add.tipo==='egreso' ? COLORS.coral : COLORS.lime;
+  const top3 = topCategorias();
+  const selectedCat = state.add.categoria ? catInfo(state.add.categoria) : null;
+  const isTop3 = selectedCat && top3.find(c=>c && c.id===selectedCat.id);
+  const amt = Number(state.add.amount||0);
+  const selAcc = state.add.cuenta ? accInfo(state.add.cuenta) : null;
+  const applyFour = state.add.tipo==='egreso' && selAcc && selAcc.four;
+  const tax = applyFour ? Math.round(amt*0.004) : 0;
+  const total = amt + tax;
+
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr"><div class="hdr-btn clk" onclick="back()"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">Detalles</div><div class="hdr-btn clk" onclick="nav('home')"><i class="ti ti-x"></i></div></div>
+
+    <div class="scroll">
+      <div class="amount-mini"><div class="v mono" style="color:${accent.fg}">${fmt(amt)}</div><div style="font-size:11px;color:${accent.fg}">${state.add.tipo==='ingreso'?'Ingreso':'Egreso'}</div></div>
+
+      <div class="field-label">Categoría · las que más usas</div>
+      <div class="cat-grid">
+        ${top3.filter(Boolean).map(c=>`<div class="cat-chip clk ${state.add.categoria===c.id?'sel':''}" style="${state.add.categoria===c.id?`background:${accent.dim};border-color:${accent.fg};color:${accent.fg}`:''}" onclick="state.add.categoria='${c.id}'; render();"><i class="ti ${c.icon}"></i>${c.nombre}</div>`).join('')}
+        <div class="cat-chip clk ${selectedCat && !isTop3 ? 'sel':''}" style="${selectedCat && !isTop3 ? `background:${accent.dim};border-color:${accent.fg};color:${accent.fg}` : 'border-style:dashed'}" onclick="state.showCatSheet=true; render();">
+          <i class="ti ${selectedCat && !isTop3 ? selectedCat.icon : 'ti-dots'}"></i>${selectedCat && !isTop3 ? selectedCat.nombre : 'Otros'}
+        </div>
+      </div>
+
+      <div class="field-label">Detalles</div>
+      <div class="input-row"><i class="ti ti-pencil"></i><input placeholder="Descripción" value="${state.add.desc}" oninput="state.add.desc=this.value"></div>
+      <div class="input-row"><i class="ti ti-map-pin"></i><input placeholder="Lugar" value="${state.add.lugar}" oninput="state.add.lugar=this.value"></div>
+
+      <div class="field-label">Billetera <span style="color:${accent.fg}; text-transform:none; letter-spacing:0;">· obligatorio</span></div>
+      <div class="wallet-scroll">
+        ${state.accounts.map(a=>`<div class="wallet-chip clk ${state.add.cuenta===a.id?'sel':''}" style="${state.add.cuenta===a.id?`background:${accent.dim};border-color:${accent.fg}`:''}" onclick="state.add.cuenta='${a.id}'; render();">
+          <i class="ti ${a.icon}" style="${state.add.cuenta===a.id?`color:${accent.fg}`:''}"></i>
+          <div class="wname">${a.nombre.split(' ')[0]}</div>
+          <div class="wbal mono">${fmt(a.saldo).replace('.000','K')}</div>
+        </div>`).join('')}
+      </div>
+
+      ${selAcc ? `<div class="breakdown-card">
+        <div class="bd-row"><span>${state.add.tipo==='ingreso'?'Ingreso':'Egreso'}</span><span class="mono">${fmt(amt)}</span></div>
+        ${applyFour ? `<div class="bd-row muted"><span>4x1000 <i class="ti ti-info-circle" style="font-size:11px"></i></span><span class="mono">${fmt(tax)}</span></div>` : `<div class="bd-row muted"><span>4x1000</span><span class="mono">No aplica</span></div>`}
+        <div class="bd-row total" style="color:${accent.fg}"><span>Total en ${selAcc.nombre.split(' ')[0]}</span><span class="mono">${fmt(total)}</span></div>
+      </div>` : ''}
+
+      <button class="save-btn clk" style="background:${accent.fg};color:${accent.text}" onclick="saveMovement()" ${(!state.add.categoria || !state.add.cuenta)?'disabled':''}>Guardar ${state.add.tipo}</button>
+    </div>
+
+    ${state.showCatSheet ? catSheet(accent) : ''}
+  `;
+}
+function catSheet(accent){
+  return `<div class="overlay" onclick="if(event.target===this){state.showCatSheet=false; render();}">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-heading">Todas las categorías</div>
+      <div style="height:12px"></div>
+      <div class="full-cat-grid">
+        ${CATEGORIES.map(c=>`<div class="full-cat-chip clk ${state.add.categoria===c.id?'highlight':''}" style="${state.add.categoria===c.id?`border-color:${accent.fg};background:${accent.dim};color:${accent.fg}`:''}" onclick="state.add.categoria='${c.id}'; state.showCatSheet=false; render();"><i class="ti ${c.icon}"></i>${c.nombre}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function saveMovement(){
+  const amt = Number(state.add.amount);
+  const selAcc = accInfo(state.add.cuenta);
+  const applyFour = state.add.tipo==='egreso' && selAcc.four;
+  const tax = applyFour ? Math.round(amt*0.004) : 0;
+  const total = amt + tax;
+
+  if(state.add.tipo==='ingreso'){ selAcc.saldo += amt; }
+  else { selAcc.saldo -= total; }
+
+  const tx = {id:Date.now(), tipo:state.add.tipo, monto:amt, desc: state.add.desc || catInfo(state.add.categoria).nombre, categoria: state.add.categoria, cuenta: state.add.cuenta, fecha:'hoy'};
+  state.transactions.push(tx);
+  state.lastSaved = {tx, tax, total, cuentaNombre: selAcc.nombre};
+  nav('add-confirm');
+}
+
+function screenAddConfirm(){
+  const {tx, tax, total, cuentaNombre} = state.lastSaved;
+  const accent = tx.tipo==='egreso' ? COLORS.coral : COLORS.lime;
+  const c = catInfo(tx.categoria);
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="confirm-zone">
+      <div class="check-circle" style="background:${accent.dim};border-color:${accent.fg};color:${accent.fg}"><i class="ti ti-check"></i></div>
+      <div class="confirm-title">¡Movimiento guardado!</div>
+      <div class="confirm-sub">${tax>0 ? `Se descontaron ${fmt(total)} de ${cuentaNombre} (${fmt(tx.monto)} + ${fmt(tax)} de 4x1000).` : `Se registró en ${cuentaNombre}.`}</div>
+      <div class="confirm-card">
+        <i class="ti ${c.icon}" style="background:${accent.dim};color:${accent.fg}"></i>
+        <div><div style="font-size:12.5px;font-weight:500;">${tx.desc}</div><div style="font-size:10.5px;color:var(--text-3);">${c.nombre} · ${cuentaNombre}</div></div>
+        <div class="confirm-amt" style="color:${accent.fg}">${tx.tipo==='ingreso'?'+':'–'}${fmt(total)}</div>
+      </div>
+      <div class="done-btn clk" onclick="nav('home')">Listo</div>
+    </div>
+  `;
+}
+
+function screenCuentas(){
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr" style="padding-top:8px;"><div style="width:34px"></div><div class="hdr-title">Cuentas</div>${avatarBtn()}</div>
+    <div class="scroll">
+      <div class="nw-card">
+        <div class="nw-label">Patrimonio neto</div>
+        <div class="nw-val mono">${fmt(totalCash() - totalDeudas())}</div>
+        <div class="nw-split">
+          <div class="nw-item"><span class="lbl" style="color:var(--lime)">● Tienes</span><div class="val" style="color:var(--lime)">${fmt(totalCash())}</div></div>
+          <div class="nw-item"><span class="lbl" style="color:var(--coral)">● Debes</span><div class="val" style="color:var(--coral)">${fmt(totalDeudas())}</div></div>
+        </div>
+      </div>
+
+      <div class="sec-head"><div class="sec-title">Efectivo y cuentas</div><div class="sec-add clk" onclick="openFab()"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div></div>
+      ${state.accounts.map(a=>`<div class="acc-card">${iconCircle(a.icon,a.color,42)}<div><div class="acc-name">${a.nombre}</div><div class="acc-meta">${a.subtipo||(a.tipo==='efectivo'?'Billetera física':'Billetera digital')}${a.four?' · 4x1000 activo':''}</div></div><div class="acc-bal">${fmt(a.saldo)}</div></div>`).join('')}
+
+      <div class="sec-head"><div class="sec-title">Tarjetas de crédito</div><div class="sec-add clk" onclick="openFab()"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div></div>
+      ${state.cards.map(c=>`<div class="acc-card">${iconCircle(c.icon,c.color,42)}<div><div class="acc-name">${c.nombre}</div><div class="acc-meta">Cupo ${fmt(c.cupo)}</div></div><div class="acc-bal" style="color:var(--coral)">${fmt(c.usado)}</div></div>`).join('')}
+
+      <div class="sec-head"><div class="sec-title">Deudas &amp; créditos</div><div class="sec-add clk" onclick="openFab()"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div></div>
+      ${state.debts.map(d=>`<div class="acc-card">${iconCircle(d.icon,d.color,42)}<div><div class="acc-name">${d.nombre}</div><div class="acc-meta">Deuda${d.interesTipo==='fijo_capital'?' · interés fijo sobre capital':''}</div></div><div class="acc-bal" style="color:var(--coral)">${fmt(d.monto)}</div></div>`).join('')}
+      ${state.credits.map(c=>`<div class="acc-card">${iconCircle(c.icon,c.color,42)}<div><div class="acc-name">${c.nombre}</div><div class="acc-meta">Crédito · te deben</div></div><div class="acc-bal" style="color:var(--yellow)">${fmt(c.monto)}</div></div>`).join('')}
+    </div>
+    ${tabbar('cuentas')}
+  `;
+}
+
+function screenBalance(){
+  const ing = totalIngresosFijos();
+  const gas = totalGastosFijos();
+  const aho = totalAporteMetas();
+  const libre = disponibleLibre();
+  const total = ing || 1;
+  // proporciones sobre el ingreso fijo total, en grados de circunferencia (radio 92 → circunf. 578)
+  const gasPct = Math.max(gas/total,0);
+  const ahoPct = Math.max(aho/total,0);
+  const libPct = Math.max(libre/total,0);
+  const CIRC = 578;
+  const gasLen = CIRC*Math.min(gasPct,1);
+  const ahoLen = CIRC*Math.min(ahoPct,1);
+  const libLen = Math.max(CIRC - gasLen - ahoLen, 0);
+
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr" style="padding-top:8px;"><div style="width:34px"></div><div class="hdr-title">Balance</div>${avatarBtn()}</div>
+    <div class="scroll">
+
+      <div class="donut-wrap">
+        <svg width="190" height="190" viewBox="0 0 230 230">
+          <circle cx="115" cy="115" r="92" fill="none" stroke="#242426" stroke-width="22"/>
+          <circle cx="115" cy="115" r="92" fill="none" stroke="#FF7A6E" stroke-width="22"
+            stroke-dasharray="${gasLen} ${CIRC}" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 115 115)"/>
+          <circle cx="115" cy="115" r="92" fill="none" stroke="#C6FF4D" stroke-width="22"
+            stroke-dasharray="${ahoLen} ${CIRC}" stroke-dashoffset="${-gasLen}" stroke-linecap="round" transform="rotate(-90 115 115)"/>
+          <circle cx="115" cy="115" r="92" fill="none" stroke="#B9A6F5" stroke-width="22"
+            stroke-dasharray="${libLen} ${CIRC}" stroke-dashoffset="${-(gasLen+ahoLen)}" stroke-linecap="round" transform="rotate(-90 115 115)"/>
+        </svg>
+        <div class="donut-center"><div class="lbl">Libre después de todo</div><div class="val mono" style="color:${libre>=0?'var(--lime)':'var(--coral)'}">${fmt(libre)}</div></div>
+      </div>
+
+      <div class="rs-hero-split" style="justify-content:center; gap:18px; margin-bottom:6px;">
+        <span style="color:var(--coral)">● Gastos fijos</span>
+        <span style="color:var(--lime)">● Ahorro a metas</span>
+        <span style="color:var(--lavender)">● Libre</span>
+      </div>
+
+      <div class="rs-mini-grid">
+        <div class="rs-mini"><div class="rs-mini-lbl">Ingresos fijos</div><div class="rs-mini-val mono" style="color:var(--lime)">${fmt(ing)}</div></div>
+        <div class="rs-mini"><div class="rs-mini-lbl">Gastos fijos</div><div class="rs-mini-val mono" style="color:var(--coral)">${fmt(gas)}</div></div>
+      </div>
+
+      <div class="sec-head"><div class="sec-title">Ingresos fijos</div><div class="sec-add"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div></div>
+      ${state.ingresosFijos.map(i=>`<div class="acc-card">${iconCircle(i.icon,'lime',40)}<div><div class="acc-name">${i.nombre}</div><div class="acc-meta">Cada mes · día ${i.dia}</div></div><div class="acc-bal" style="color:var(--lime)">${fmt(i.monto)}</div></div>`).join('')}
+
+      <div class="sec-head"><div class="sec-title">Gastos fijos</div><div class="sec-add"><i class="ti ti-plus" style="font-size:13px"></i> Agregar</div></div>
+      ${state.gastosFijos.map(g=>`<div class="acc-card">${iconCircle(g.icon,'coral',40)}<div><div class="acc-name">${g.nombre}</div><div class="acc-meta">Cada mes · vence día ${g.dia}</div></div><div class="acc-bal" style="color:var(--coral)">${fmt(g.monto)}</div></div>`).join('')}
+
+      <div class="sec-head"><div class="sec-title">Metas de ahorro</div><div class="sec-add">+ Nueva</div></div>
+      ${state.goals.map(g=>{ const pct=Math.round(g.actual/g.objetivo*100); const c=COLORS[g.color];
+        return `<div class="goal-card">${iconCircle(g.icon,g.color,44)}<div style="flex:1;"><div style="display:flex;justify-content:space-between;"><div class="goal-name">${g.nombre}</div><div class="goal-amt">${fmt(g.objetivo)}</div></div><div class="goal-track"><div class="goal-fill" style="width:${pct}%;background:${c.fg}"></div></div><div style="font-size:10.5px;color:var(--text-2);margin-top:5px;">${pct}% completado · aportas ${fmt(g.aporteMensual)}/mes</div></div></div>`;
+      }).join('')}
+    </div>
+    ${tabbar('balance')}
+  `;
+}
+
+// ---------------- ACCOUNT / DEBT CREATION FLOW ----------------
+function screenAccFlow(){
+  const s = state.acc;
+  if(s.step==='type') return accStepType();
+  if(s.step==='subtype-bank') return accStepSubtypeBank();
+  if(s.step==='subtype-debt') return accStepSubtypeDebt();
+  if(s.step==='interest') return accStepInterest();
+  return accStepForm();
+}
+
+function accHeader(title, dots){
+  return `<div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+  <div class="hdr"><div class="hdr-btn clk" onclick="back()"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">${title}</div><div class="hdr-btn clk" onclick="nav('cuentas')"><i class="ti ti-x"></i></div></div>
+  <div class="progress-dots">${[1,2,3].map(i=>`<div class="pdot ${i<=dots?'done':''}"></div>`).join('')}</div>`;
+}
+
+function accStepType(){
+  const opts = [
+    {id:'efectivo', nombre:'Efectivo', desc:'Plata física que manejas', icon:'ti-cash', color:'lime'},
+    {id:'billetera_digital', nombre:'Billetera digital', desc:'Nequi, Daviplata, etc.', icon:'ti-device-mobile', color:'lavender'},
+    {id:'cuenta_bancaria', nombre:'Cuenta bancaria', desc:'Ahorros, corriente, CDT...', icon:'ti-building-bank', color:'yellow'},
+    {id:'tarjeta_credito', nombre:'Tarjeta de crédito', desc:'Cupo y saldo usado', icon:'ti-credit-card', color:'coral'},
+    {id:'deuda', nombre:'Deuda', desc:'Algo que debes pagar', icon:'ti-scale', color:'coral'},
+    {id:'credito', nombre:'Crédito', desc:'Algo que te deben', icon:'ti-arrow-back-up', color:'yellow'},
+  ];
+  return `${accHeader('¿Qué quieres agregar?',1)}
+    <div class="scroll">
+      <div class="step-sub">Elige el tipo para pedirte los datos correctos.</div>
+      ${opts.map(o=>`<div class="type-opt clk" onclick="chooseAccType('${o.id}')">${iconCircle(o.icon,o.color,38)}<div><div class="type-name">${o.nombre}</div><div class="type-desc">${o.desc}</div></div><i class="ti ti-chevron-right" style="margin-left:auto;color:var(--text-3)"></i></div>`).join('')}
+    </div>`;
+}
+function chooseAccType(id){
+  state.acc.tipo = id;
+  if(id==='cuenta_bancaria') state.acc.step='subtype-bank';
+  else if(id==='deuda' || id==='credito') state.acc.step='subtype-debt';
+  else state.acc.step='form';
+  render();
+}
+
+function accStepSubtypeBank(){
+  const subs = ['Cuenta de ahorros','Cuenta corriente','CDT','Fondo de inversión'];
+  return `${accHeader('Nueva cuenta bancaria',2)}
+    <div class="scroll">
+      <div class="step-sub">¿Qué tipo de cuenta es?</div>
+      ${subs.map(s=>`<div class="type-opt clk" onclick="state.acc.subtipo='${s}'; state.acc.step='form'; render();"><div style="width:38px"></div><div class="type-name">${s}</div><i class="ti ti-chevron-right" style="margin-left:auto;color:var(--text-3)"></i></div>`).join('')}
+    </div>`;
+}
+
+function accStepSubtypeDebt(){
+  const subs = ['Préstamo bancario','Crédito rotativo','Crédito hipotecario','Préstamo con un tercero','Otro'];
+  return `${accHeader(state.acc.tipo==='deuda'?'Nueva deuda':'Nuevo crédito',2)}
+    <div class="scroll">
+      <div class="step-sub">¿Qué tipo es? Cada uno calcula el interés distinto.</div>
+      ${subs.map(s=>`<div class="type-opt clk" onclick="state.acc.subtipo='${s}'; state.acc.step='interest'; render();"><div style="width:38px"></div><div class="type-name">${s}</div><i class="ti ti-chevron-right" style="margin-left:auto;color:var(--text-3)"></i></div>`).join('')}
+    </div>`;
+}
+
+function accStepInterest(){
+  const opts = [
+    {id:'sobre_saldo', nombre:'Sobre saldo pendiente', desc:'Baja a medida que abonas capital. Así funciona la mayoría de créditos bancarios.'},
+    {id:'fijo_capital', nombre:'Fijo sobre el capital', desc:'Cobra lo mismo cada periodo mientras no pagues capital — típico en préstamos informales.'},
+    {id:'sin_interes', nombre:'Sin interés', desc:'Un préstamo entre familia o amigos sin cobro extra.'},
+  ];
+  return `${accHeader(state.acc.tipo==='deuda'?'Nueva deuda':'Nuevo crédito',3)}
+    <div class="scroll">
+      <div class="step-sub">¿Cómo cobra el interés?</div>
+      ${opts.map(o=>`<div class="radio-card clk ${state.acc.interes===o.id?'sel':''}" onclick="state.acc.interes='${o.id}'; render();">
+        <div class="radio-top"><div class="radio-name">${o.nombre}</div><div class="radio-check ${state.acc.interes===o.id?'on':''}"></div></div>
+        <div class="radio-desc">${o.desc}</div>
+      </div>`).join('')}
+      <button class="save-btn clk" style="background:var(--lime); color:var(--lime-text)" ${!state.acc.interes?'disabled':''} onclick="state.acc.step='form'; render();">Continuar</button>
+    </div>`;
+}
+
+function accStepForm(){
+  const f = state.acc.form;
+  const isDebt = state.acc.tipo==='deuda' || state.acc.tipo==='credito';
+  const isFixedInterest = state.acc.interes==='fijo_capital';
+  let title = 'Nueva cuenta';
+  if(state.acc.tipo==='efectivo') title='Nuevo efectivo';
+  if(state.acc.tipo==='billetera_digital') title='Nueva billetera digital';
+  if(state.acc.tipo==='cuenta_bancaria') title='Nueva '+ (state.acc.subtipo||'cuenta');
+  if(state.acc.tipo==='tarjeta_credito') title='Nueva tarjeta de crédito';
+  if(isDebt) title = state.acc.subtipo || (state.acc.tipo==='deuda'?'Nueva deuda':'Nuevo crédito');
+
+  const canShowFour = ['billetera_digital','cuenta_bancaria','tarjeta_credito'].includes(state.acc.tipo);
+  const capitalNum = Number(f.capital||0);
+  const tasaNum = Number(f.tasa||0);
+  const cuotaFija = Math.round(capitalNum * (tasaNum/100));
+
+  return `${accHeader(title, isDebt?3:2)}
+    <div class="scroll">
+      <div class="field-label">Nombre</div>
+      <div class="input-row"><i class="ti ti-tag"></i><input placeholder="Ej: Nequi, Don Álvaro..." value="${f.nombre}" oninput="state.acc.form.nombre=this.value"></div>
+
+      ${isDebt ? `
+        <div class="field-label">Capital ${state.acc.tipo==='deuda'?'que debes':'que prestaste'}</div>
+        <div class="input-row"><i class="ti ti-currency-dollar"></i><input inputmode="numeric" placeholder="1.000.000" value="${f.capital}" oninput="state.acc.form.capital=this.value.replace(/[^0-9]/g,''); render();"></div>
+
+        ${state.acc.interes!=='sin_interes' ? `
+        <div class="field-label">Interés y periodicidad</div>
+        <div style="display:flex; gap:10px;">
+          <div class="input-row" style="flex:1;"><i class="ti ti-percentage"></i><input inputmode="numeric" placeholder="20" value="${f.tasa}" oninput="state.acc.form.tasa=this.value.replace(/[^0-9.]/g,''); render();"></div>
+          <div class="input-row" style="flex:1;"><i class="ti ti-calendar-repeat"></i><input value="${f.periodo}" oninput="state.acc.form.periodo=this.value"></div>
+        </div>` : ''}
+
+        ${isFixedInterest && capitalNum>0 && tasaNum>0 ? `<div class="warn-card">
+          <i class="ti ti-alert-triangle"></i>
+          <div class="t">Con interés fijo sobre capital, pagas <b>${fmt(cuotaFija)} cada ${f.periodo.toLowerCase()}</b> mientras debas los ${fmt(capitalNum)} completos — abonar capital de más <b>no</b> reduce ese interés del próximo periodo.</div>
+        </div>` : ''}
+      ` : `
+        <div class="field-label">${state.acc.tipo==='tarjeta_credito' ? 'Cupo total' : 'Saldo actual'}</div>
+        <div class="input-row"><i class="ti ti-currency-dollar"></i><input inputmode="numeric" placeholder="0" value="${f.saldo}" oninput="state.acc.form.saldo=this.value.replace(/[^0-9]/g,'')"></div>
+      `}
+
+      ${canShowFour ? `
+        <div class="field-label">4x1000 en esta cuenta</div>
+        <div class="input-row" style="justify-content:space-between; align-items:flex-start;">
+          <div><span style="font-size:12.5px;color:var(--text-2)">Descontar 4x1000 en egresos</span><div style="font-size:10px;color:var(--text-3);margin-top:4px;line-height:1.4;">Actívalo solo si tu banco/billetera lo cobra.</div></div>
+          <div class="clk" onclick="state.acc.form.four = !state.acc.form.four; render();" style="width:38px;height:22px;border-radius:12px;background:${state.acc.form.four!==false?'var(--lime)':'var(--card-2)'};position:relative;flex-shrink:0;margin-top:2px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:${state.acc.form.four!==false?'var(--lime-text)':'var(--text-3)'};position:absolute;top:2px;${state.acc.form.four!==false?'right':'left'}:2px;"></div>
+          </div>
+        </div>
+      ` : ''}
+
+      <button class="save-btn clk" style="background:var(--lime); color:var(--lime-text)" onclick="saveAccount()">Guardar</button>
+    </div>`;
+}
+
+function saveAccount(){
+  const t = state.acc.tipo, f = state.acc.form;
+  const four = f.four !== false;
+  if(t==='efectivo' || t==='billetera_digital' || t==='cuenta_bancaria'){
+    const icon = t==='efectivo'?'ti-cash':t==='billetera_digital'?'ti-device-mobile':'ti-building-bank';
+    const color = t==='efectivo'?'lime':t==='billetera_digital'?'lavender':'yellow';
+    state.accounts.push({id:'acc_'+Date.now(), nombre:f.nombre||'Nueva cuenta', tipo:t, subtipo:state.acc.subtipo, saldo:Number(f.saldo||0), icon, color, four: t==='efectivo'?false:four});
+  } else if(t==='tarjeta_credito'){
+    state.cards.push({id:'card_'+Date.now(), nombre:f.nombre||'Nueva tarjeta', tipo:t, cupo:Number(f.saldo||0), usado:0, icon:'ti-credit-card', color:'coral', four});
+  } else if(t==='deuda'){
+    state.debts.push({id:'debt_'+Date.now(), nombre:f.nombre||'Nueva deuda', tipo:t, monto:Number(f.capital||0), icon:'ti-scale', color:'coral', interesTipo:state.acc.interes, tasa:Number(f.tasa||0), periodo:f.periodo});
+  } else if(t==='credito'){
+    state.credits.push({id:'cred_'+Date.now(), nombre:f.nombre||'Nuevo crédito', tipo:t, monto:Number(f.capital||0), icon:'ti-arrow-back-up', color:'yellow', interesTipo:state.acc.interes, tasa:Number(f.tasa||0), periodo:f.periodo});
+  }
+  nav('cuentas');
+}
+
+function screenResumen(){
+  const tienes = totalCash();
+  const debes = totalDeudas();
+  const teDeben = totalCreditos();
+  const neto = tienes - debes + teDeben;
+  const pctTienes = Math.round(tienes/(tienes+debes)*100) || 0;
+  const ahorroTotal = state.goals.reduce((s,g)=>s+g.actual,0);
+  const ahorroObjetivo = state.goals.reduce((s,g)=>s+g.objetivo,0);
+
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr" style="padding-top:8px;"><div style="width:34px"></div><div class="hdr-title">Resumen general</div>${avatarBtn()}</div>
+    <div class="scroll">
+
+      <div class="rs-hero">
+        <div class="rs-hero-label">Patrimonio neto</div>
+        <div class="rs-hero-val mono">${fmt(neto)}</div>
+        <div class="rs-hero-bar">
+          <div style="width:${pctTienes}%; background:var(--lime);"></div>
+          <div style="width:${100-pctTienes}%; background:var(--coral);"></div>
+        </div>
+        <div class="rs-hero-split">
+          <span style="color:var(--lime)">● Tienes ${fmt(tienes)}</span>
+          <span style="color:var(--coral)">● Debes ${fmt(debes)}</span>
+        </div>
+      </div>
+
+      <div class="rs-mini-grid">
+        <div class="rs-mini"><div class="rs-mini-lbl">Ingresos (demo)</div><div class="rs-mini-val mono" style="color:var(--lime)">${fmt(totalIngresos())}</div></div>
+        <div class="rs-mini"><div class="rs-mini-lbl">Egresos (demo)</div><div class="rs-mini-val mono" style="color:var(--coral)">${fmt(totalEgresos())}</div></div>
+      </div>
+
+      <div class="rs-block">
+        <div class="rs-block-title"><span>Cuentas y efectivo</span><span class="link clk" onclick="nav('cuentas')">Ver todas</span></div>
+        ${state.accounts.map(a=>`<div class="rs-line"><div class="rs-line-left"><span class="dot" style="background:var(--${a.color})"></span>${a.nombre}</div><div class="rs-line-val">${fmt(a.saldo)}</div></div>`).join('')}
+        ${state.cards.map(c=>`<div class="rs-line"><div class="rs-line-left"><span class="dot" style="background:var(--coral)"></span>${c.nombre} <span style="color:var(--text-3)">(usado)</span></div><div class="rs-line-val" style="color:var(--coral)">${fmt(c.usado)}</div></div>`).join('')}
+      </div>
+
+      <div class="rs-block">
+        <div class="rs-block-title"><span>Deudas &amp; créditos</span><span class="link clk" onclick="nav('cuentas')">Ver todas</span></div>
+        ${[...state.debts, ...state.credits].length===0 ? `<div class="rs-empty">No tienes deudas ni créditos activos.</div>` :
+          [...state.debts.map(d=>`<div class="rs-line"><div class="rs-line-left"><span class="dot" style="background:var(--coral)"></span>${d.nombre}</div><div class="rs-line-val" style="color:var(--coral)">${fmt(d.monto)}</div></div>`),
+           ...state.credits.map(c=>`<div class="rs-line"><div class="rs-line-left"><span class="dot" style="background:var(--yellow)"></span>${c.nombre}</div><div class="rs-line-val" style="color:var(--yellow)">${fmt(c.monto)}</div></div>`)].join('')}
+      </div>
+
+      <div class="rs-block">
+        <div class="rs-block-title"><span>Metas de ahorro</span><span class="link clk" onclick="nav('balance')">Ver todas</span></div>
+        <div style="font-size:11px; color:var(--text-2); margin-bottom:8px;">${fmt(ahorroTotal)} de ${fmt(ahorroObjetivo)} acumulado en total</div>
+        ${state.goals.map(g=>{ const pct=Math.round(g.actual/g.objetivo*100); const c=COLORS[g.color];
+          return `<div class="rs-goal-mini"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:${c.fg};flex-shrink:0;"></span><span style="font-size:11.5px; flex-shrink:0; width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${g.nombre}</span><div class="rs-goal-mini-track"><div class="rs-goal-mini-fill" style="width:${pct}%; background:${c.fg}"></div></div><div class="rs-goal-mini-pct">${pct}%</div></div>`;
+        }).join('')}
+      </div>
+
+      <div class="rs-block">
+        <div class="rs-block-title"><span>Presupuestos</span><span class="link">Próximamente</span></div>
+        <div class="rs-empty">Cuando armemos presupuestos por categoría, su avance del mes aparecerá aquí también.</div>
+      </div>
+
+    </div>
+    ${tabbar('resumen')}
+  `;
+}
+
+function screenProfile(){
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div class="hdr"><div class="hdr-btn clk" onclick="back()"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">Perfil</div><div style="width:34px"></div></div>
+
+    <div class="scroll">
+      <div class="profile-hero">
+        <div class="profile-avatar">FD<div class="edit-badge"><i class="ti ti-camera"></i></div></div>
+        <div class="profile-name">Felo</div>
+        <div class="profile-sub">FeloDeejay · Medellín</div>
+      </div>
+
+      <div class="settings-group-label">Cuenta</div>
+      <div class="settings-block">
+        <div class="settings-row clk"><i class="ti ti-user left-icon"></i><div class="label">Editar perfil</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-lock left-icon"></i><div class="label">Seguridad y PIN</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-bell left-icon"></i><div class="label">Notificaciones</div><i class="ti ti-chevron-right chev"></i></div>
+      </div>
+
+      <div class="settings-group-label">Preferencias</div>
+      <div class="settings-block">
+        <div class="settings-row clk"><i class="ti ti-currency-dollar left-icon"></i><div class="label">Moneda</div><div class="value">COP</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-category left-icon"></i><div class="label">Categorías</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk" onclick="nav('cuentas')"><i class="ti ti-wallet left-icon"></i><div class="label">Cuentas y billeteras</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-language left-icon"></i><div class="label">Idiomas</div><div class="value">Español</div><i class="ti ti-chevron-right chev"></i></div>
+      </div>
+
+      <div class="settings-group-label">Datos</div>
+      <div class="settings-block">
+        <div class="settings-row clk"><i class="ti ti-download left-icon"></i><div class="label">Exportar datos</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-shield-check left-icon"></i><div class="label">Privacidad</div><i class="ti ti-chevron-right chev"></i></div>
+      </div>
+
+      <div class="settings-group-label">Soporte</div>
+      <div class="settings-block">
+        <div class="settings-row clk"><i class="ti ti-help-circle left-icon"></i><div class="label">Ayuda</div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="settings-row clk"><i class="ti ti-info-circle left-icon"></i><div class="label">Acerca de Zafra</div><div class="value">v0.1</div></div>
+      </div>
+
+      <div class="logout-btn clk" onclick="state.showLogoutConfirm=true; render();"><i class="ti ti-logout"></i> Cerrar sesión</div>
+      <div class="delete-link clk">Eliminar cuenta</div>
+    </div>
+
+    ${state.showLogoutConfirm ? logoutConfirmSheet() : ''}
+  `;
+}
+
+function logoutConfirmSheet(){
+  return `<div class="overlay" onclick="if(event.target===this){state.showLogoutConfirm=false; render();}">
+    <div class="bottom-sheet" style="max-height:none;">
+      <div class="sheet-handle"></div>
+      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--coral-dim);border:1.5px solid var(--coral);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--coral);"><i class="ti ti-logout"></i></div>
+      </div>
+      <div class="sheet-heading" style="text-align:center;">¿Cerrar sesión?</div>
+      <div class="step-sub" style="text-align:center; margin-top:6px;">Vas a salir de Zafra en este dispositivo. Tus datos siguen guardados y podrás volver a entrar cuando quieras.</div>
+      <div class="confirm-sheet-actions">
+        <button class="clk" style="background:var(--card-2); color:var(--text-2);" onclick="state.showLogoutConfirm=false; render();">Cancelar</button>
+        <button class="clk" style="background:var(--coral); color:#2b0906;" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>`;
+}
+function doLogout(){
+  state.showLogoutConfirm = false;
+  nav('loggedout');
+}
+
+function screenLoggedOut(){
+  return `
+    <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 34px; text-align:center;">
+      <div style="width:70px;height:70px;border-radius:20px;background:var(--lime);color:var(--lime-text);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;font-family:'Space Grotesk',sans-serif; box-shadow:0 0 50px rgba(198,255,77,0.3);">Z</div>
+      <div style="font-size:20px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-top:18px;">Sesión cerrada</div>
+      <div style="font-size:12px;color:var(--text-2);margin-top:8px;line-height:1.5;">Vuelve cuando quieras — tus cuentas, movimientos y metas siguen intactos.</div>
+      <div class="done-btn clk" style="margin-top:28px;" onclick="nav('home')">Volver a iniciar sesión</div>
+    </div>
+  `;
+}
+
+// ============================= RENDER =============================
+function render(){
+  const el = $('#screen');
+  let html = `<div class="notch"></div>`;
+  switch(state.screen){
+    case 'home': html += screenHome(); break;
+    case 'cuentas': html += screenCuentas(); break;
+    case 'balance': html += screenBalance(); break;
+    case 'resumen': html += screenResumen(); break;
+    case 'profile': html += screenProfile(); break;
+    case 'loggedout': html += screenLoggedOut(); break;
+    case 'add-amount': html += screenAddAmount(); break;
+    case 'add-details': html += screenAddDetails(); break;
+    case 'add-confirm': html += screenAddConfirm(); break;
+    case 'acc-flow': html += screenAccFlow(); break;
+    default: html += screenHome();
+  }
+  el.innerHTML = html;
+  if(state.screen==='home'){ attachWaveInteractivity(); }
+}
+render();
+</script>
+</body>
+</html>

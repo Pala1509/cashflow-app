@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botón de voz de los widgets: lima de marca sólido, ícono negro. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#C6FF4D" />
+    <corners android:radius="16dp" />
+</shape>

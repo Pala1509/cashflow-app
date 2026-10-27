@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CashFlow — Boceto: Notificaciones y Widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; padding:44px 24px; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-wrap:wrap; gap:52px; align-items:flex-start; justify-content:center;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:14px;}
+
+  /* ===== TELÉFONO CON WIDGET EN EL HOME ===== */
+  .phone-frame{width:340px; height:700px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .home-screen{
+    width:100%; height:100%; border-radius:33px; overflow:hidden; position:relative;
+    background:linear-gradient(160deg, #1a1a2e 0%, #0c0c14 55%, #0a0a0a 100%);
+  }
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:90px; height:20px; background:#000; border-radius:12px; z-index:6;}
+  .status-row{display:flex; justify-content:space-between; padding:14px 20px 0; font-size:11px; color:rgba(255,255,255,0.85); font-family:'JetBrains Mono',monospace;}
+  .clock{text-align:center; margin-top:26px; color:#fff;}
+  .clock .time{font-size:52px; font-weight:300; font-family:'Space Grotesk',sans-serif;}
+  .clock .date{font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;}
+
+  .widget{
+    margin:34px 20px 0; border-radius:24px; padding:16px 18px;
+    background:rgba(29,29,31,0.88); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.06);
+  }
+  .widget-top{display:flex; align-items:center; justify-content:space-between;}
+  .widget-brand{display:flex; align-items:center; gap:7px;}
+  .widget-mark{width:20px; height:20px; border-radius:6px; background:var(--lime); color:var(--lime-text); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .widget-name{font-size:11px; color:rgba(255,255,255,0.55);}
+  .widget-refresh{font-size:9px; color:rgba(255,255,255,0.35);}
+  .widget-balance-lbl{font-size:10px; color:rgba(255,255,255,0.5); margin-top:10px;}
+  .widget-balance{font-size:22px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:#fff; margin-top:1px;}
+  .widget-btns{display:flex; gap:8px; margin-top:13px;}
+  .widget-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:10px 0; border-radius:14px; font-size:12px; font-weight:600;
+  }
+
+  .app-icons-row{display:flex; justify-content:space-around; margin-top:30px; padding:0 20px;}
+  .app-icon{width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,0.08);}
+
+  .dock{position:absolute; bottom:14px; left:16px; right:16px; height:64px; border-radius:22px; background:rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:space-around; padding:0 10px;}
+  .dock .app-icon{width:42px; height:42px;}
+
+  /* ===== NOTIFICACIONES (bandeja) ===== */
+  .notif-frame{width:340px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .notif-screen{width:100%; border-radius:33px; overflow:hidden; background:#0d0d0f; padding:46px 16px 24px;}
+  .notif-today{font-size:11px; color:rgba(255,255,255,0.4); margin:0 6px 10px;}
+  .notif-card{
+    background:#1c1c1e; border-radius:20px; padding:14px 15px; margin-bottom:10px;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .notif-icon{width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .notif-app-row{display:flex; align-items:center; gap:6px; font-size:10.5px; color:rgba(255,255,255,0.45); margin-bottom:3px;}
+  .notif-app-mark{width:14px; height:14px; border-radius:4px; background:var(--lime); display:inline-flex;}
+  .notif-title{font-size:13px; font-weight:600; color:#fff;}
+  .notif-body{font-size:12px; color:rgba(255,255,255,0.65); margin-top:2px; line-height:1.4;}
+  .notif-time{font-size:10px; color:rgba(255,255,255,0.35); flex-shrink:0;}
+
+  /* ===== PANTALLA DE AJUSTES DE NOTIFICACIONES ===== */
+  .app-frame{width:340px; height:700px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .app-screen{background:var(--bg); width:100%; height:100%; border-radius:33px; overflow:hidden; padding:44px 20px 20px; overflow-y:auto;}
+  .app-hdr{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif; text-align:center; margin-bottom:18px;}
+  .set-group-lbl{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin:16px 4px 8px;}
+  .set-row{display:flex; align-items:center; gap:11px; padding:12px 14px; border-bottom:1px solid var(--line);}
+  .set-block{background:var(--card); border-radius:16px; overflow:hidden;}
+  .set-icon{width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .set-title{font-size:12.5px; font-weight:500;}
+  .set-sub{font-size:10px; color:var(--text-3); margin-top:1px;}
+  .toggle{width:36px; height:21px; border-radius:11px; position:relative; flex-shrink:0; margin-left:auto;}
+  .toggle.on{background:var(--lime);}
+  .toggle.off{background:var(--card-2);}
+  .toggle .dot{width:17px; height:17px; border-radius:50%; position:absolute; top:2px;}
+  .days-pills{display:flex; gap:6px; padding:0 14px 12px; flex-wrap:wrap;}
+  .days-pill{padding:5px 10px; border-radius:20px; font-size:10.5px; background:var(--card-2); color:var(--text-2);}
+  .days-pill.sel{background:var(--lime-dim); color:var(--lime); border:1px solid var(--lime);}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ WIDGET EN EL HOME DE ANDROID ============ -->
+  <div>
+    <div class="device-label">Boceto — Widget en pantalla de inicio</div>
+    <div class="phone-frame"><div class="home-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+      <div class="clock"><div class="time">9:41</div><div class="date">Sábado, 9 de agosto</div></div>
+
+      <div class="widget">
+        <div class="widget-top">
+          <div class="widget-brand">
+            <div class="widget-mark">CF</div>
+            <div class="widget-name">CashFlow</div>
+          </div>
+          <div class="widget-refresh"><i class="ti ti-refresh"></i></div>
+        </div>
+        <div class="widget-balance-lbl">Balance total</div>
+        <div class="widget-balance mono">$4.286.400</div>
+        <div class="widget-btns">
+          <div class="widget-btn" style="background:var(--lime-dim); color:var(--lime);"><i class="ti ti-arrow-down-left"></i> Ingreso</div>
+          <div class="widget-btn" style="background:var(--coral-dim); color:var(--coral);"><i class="ti ti-arrow-up-right"></i> Egreso</div>
+        </div>
+      </div>
+
+      <div class="app-icons-row">
+        <div class="app-icon"></div><div class="app-icon"></div><div class="app-icon"></div><div class="app-icon"></div>
+      </div>
+
+      <div class="dock">
+        <div class="app-icon"></div><div class="app-icon"></div><div class="app-icon"></div><div class="app-icon"></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ NOTIFICACIONES EN LA BANDEJA ============ -->
+  <div>
+    <div class="device-label">Boceto — Notificaciones</div>
+    <div class="notif-frame"><div class="notif-screen">
+      <div class="notif-today">Hoy</div>
+
+      <div class="notif-card">
+        <div class="notif-icon" style="background:var(--coral-dim); color:var(--coral);"><i class="ti ti-alert-triangle"></i></div>
+        <div style="flex:1;">
+          <div class="notif-app-row"><span class="notif-app-mark"></span>CashFlow</div>
+          <div class="notif-title">Tu arriendo vence hoy</div>
+          <div class="notif-body">$900.000 · Vivienda. Tócalo para registrarlo cuando lo pagues.</div>
+        </div>
+        <div class="notif-time">8:00</div>
+      </div>
+
+      <div class="notif-card">
+        <div class="notif-icon" style="background:var(--yellow-dim); color:var(--yellow);"><i class="ti ti-clock"></i></div>
+        <div style="flex:1;">
+          <div class="notif-app-row"><span class="notif-app-mark"></span>CashFlow</div>
+          <div class="notif-title">Préstamo con Don Álvaro vence en 3 días</div>
+          <div class="notif-body">Debes $1.000.000 + interés. Recuerda que el interés no baja aunque abones antes de la fecha.</div>
+        </div>
+        <div class="notif-time">8:00</div>
+      </div>
+
+      <div class="notif-today" style="margin-top:16px;">Ayer</div>
+      <div class="notif-card">
+        <div class="notif-icon" style="background:var(--lime-dim); color:var(--lime);"><i class="ti ti-check"></i></div>
+        <div style="flex:1;">
+          <div class="notif-app-row"><span class="notif-app-mark"></span>CashFlow</div>
+          <div class="notif-title">Ya casi llegas a tu meta</div>
+          <div class="notif-body">"Estudio Pon Dah Beat" está al 92% — te faltan $400.000.</div>
+        </div>
+        <div class="notif-time">6:30</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ PANTALLA DE AJUSTES ============ -->
+  <div>
+    <div class="device-label">Boceto — Ajustes de notificaciones</div>
+    <div class="app-frame"><div class="app-screen">
+      <div class="app-hdr">Notificaciones</div>
+
+      <div class="set-group-lbl">Deudas y créditos</div>
+      <div class="set-block">
+        <div class="set-row">
+          <div class="set-icon" style="background:var(--coral-dim); color:var(--coral);"><i class="ti ti-scale"></i></div>
+          <div><div class="set-title">Avisar antes de que venzan</div><div class="set-sub">Deudas, préstamos que hiciste</div></div>
+          <div class="toggle on"><div class="dot" style="background:var(--lime-text); right:2px;"></div></div>
+        </div>
+        <div class="days-pills">
+          <div class="days-pill">El mismo día</div>
+          <div class="days-pill sel">3 días antes</div>
+          <div class="days-pill">7 días antes</div>
+        </div>
+      </div>
+
+      <div class="set-group-lbl">Gastos fijos</div>
+      <div class="set-block">
+        <div class="set-row">
+          <div class="set-icon" style="background:var(--yellow-dim); color:var(--yellow);"><i class="ti ti-home"></i></div>
+          <div><div class="set-title">Avisar cuando vence un gasto fijo</div><div class="set-sub">Arriendo, suscripciones, etc.</div></div>
+          <div class="toggle on"><div class="dot" style="background:var(--lime-text); right:2px;"></div></div>
+        </div>
+      </div>
+
+      <div class="set-group-lbl">Presupuestos</div>
+      <div class="set-block">
+        <div class="set-row" style="border-bottom:none;">
+          <div class="set-icon" style="background:var(--coral-dim); color:var(--coral);"><i class="ti ti-chart-pie"></i></div>
+          <div><div class="set-title">Avisar si te pasas del límite</div><div class="set-sub">Apenas superes una categoría</div></div>
+          <div class="toggle on"><div class="dot" style="background:var(--lime-text); right:2px;"></div></div>
+        </div>
+      </div>
+
+      <div class="set-group-lbl">Metas</div>
+      <div class="set-block">
+        <div class="set-row" style="border-bottom:none;">
+          <div class="set-icon" style="background:var(--lime-dim); color:var(--lime);"><i class="ti ti-target-arrow"></i></div>
+          <div><div class="set-title">Avisar al llegar al 90%</div><div class="set-sub">Un empujón cuando ya casi llegas</div></div>
+          <div class="toggle off"><div class="dot" style="background:var(--text-3); left:2px;"></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

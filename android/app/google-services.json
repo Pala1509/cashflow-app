@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288948900942",
+    "project_id": "cashflow-1b1a1",
+    "storage_bucket": "cashflow-1b1a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288948900942:android:6cec250ce5131e78f91f1f",
+        "android_client_info": {
+          "package_name": "studio.vantalab.cashflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBS5aDPqFmZ4kdVv-lGyZTVSnuBCetUCOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

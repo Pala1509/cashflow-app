@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CashFlow — Boceto: Tipo de movimiento + Transferencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+    --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; padding:44px 24px; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-wrap:wrap; gap:52px; align-items:flex-start; justify-content:center;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:14px;}
+  .frame{width:340px; height:700px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .screen{background:var(--bg); width:100%; height:100%; border-radius:33px; overflow:hidden; padding:44px 18px 20px; overflow-y:auto;}
+  .hdr{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .hdr-btn{width:32px; height:32px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-2);}
+  .hdr-title{font-size:14px; font-weight:600; font-family:'Space Grotesk',sans-serif;}
+  .seg{display:flex; gap:6px; margin-bottom:16px;}
+  .seg-btn{flex:1; padding:9px 0; border-radius:14px; text-align:center; font-size:11.5px; font-weight:600; border:1px solid var(--line); color:var(--text-2);}
+  .seg-btn.active-egr{background:var(--coral-dim); color:var(--coral); border-color:var(--coral);}
+  .seg-btn.active-ing{background:var(--lime-dim); color:var(--lime); border-color:var(--lime);}
+  .seg-btn.active-trf{background:var(--lavender-dim); color:var(--lavender); border-color:var(--lavender);}
+  .lbl{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-2); margin:14px 2px 8px;}
+  .card{background:var(--card); border-radius:16px;}
+  .row{display:flex; align-items:center; gap:11px; padding:13px 14px; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row-icon{width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .row-title{font-size:12.5px; font-weight:500;}
+  .row-sub{font-size:10px; color:var(--text-3); margin-top:1px;}
+  .chevron{margin-left:auto; color:var(--text-3);}
+  .amt{text-align:center; margin:6px 0 18px;}
+  .amt .num{font-size:34px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .amt .cap{font-size:10.5px; color:var(--text-3); margin-top:2px;}
+  .pill-grid{display:flex; flex-direction:column; gap:8px;}
+  .pill{background:var(--card); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:10px; border:1.5px solid var(--line);}
+  .pill.sel{border-color:var(--yellow); background:var(--yellow-dim);}
+  .pill-icon{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .pill-title{font-size:12px; font-weight:600;}
+  .pill-sub{font-size:10px; color:var(--text-3); margin-top:1px;}
+  .link-card{margin-top:10px; background:var(--card-2); border-radius:14px; padding:12px 14px; border:1px dashed var(--line);}
+  .link-card .lc-title{font-size:11px; font-weight:600; margin-bottom:8px; color:var(--text-2);}
+  .link-item{display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--line);}
+  .link-item:last-child{border-bottom:none;}
+  .transfer-arrow{display:flex; flex-direction:column; align-items:center; margin:2px 0; gap:2px;}
+  .transfer-line{width:2px; height:26px; background:var(--lavender); opacity:0.4;}
+  .btn{width:100%; padding:15px 0; border-radius:16px; text-align:center; font-size:13.5px; font-weight:700; margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ TIPO DE MOVIMIENTO ============ -->
+  <div>
+    <div class="device-label">Boceto — Tipo de movimiento</div>
+    <div class="frame"><div class="screen">
+      <div class="hdr"><div class="hdr-btn"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">Detalles</div><div class="hdr-btn"><i class="ti ti-x"></i></div></div>
+
+      <div class="amt"><div class="num mono" style="color:var(--coral)">$900.000</div><div class="cap">Egreso</div></div>
+
+      <div class="lbl">¿Qué tipo de egreso es?</div>
+      <div class="pill-grid">
+        <div class="pill"><div class="pill-icon" style="background:var(--card-2); color:var(--text-2)"><i class="ti ti-shopping-cart"></i></div><div><div class="pill-title">Gasto normal</div><div class="pill-sub">Comida, transporte, lo del día a día</div></div></div>
+        <div class="pill sel"><div class="pill-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-home"></i></div><div><div class="pill-title">Pago de un gasto fijo</div><div class="pill-sub">Arriendo, suscripción, algo recurrente</div></div></div>
+        <div class="pill"><div class="pill-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-scale"></i></div><div><div class="pill-title">Abono a una deuda</div><div class="pill-sub">Separa cuánto es capital y cuánto interés</div></div></div>
+      </div>
+
+      <div class="link-card">
+        <div class="lc-title">¿A cuál gasto fijo corresponde?</div>
+        <div class="link-item"><div class="row-icon" style="width:26px;height:26px;background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-home" style="font-size:12px"></i></div><div style="font-size:11.5px; font-weight:600;">Arriendo</div><div style="margin-left:auto; font-size:10px; color:var(--text-3)" class="mono">$900.000/mes</div></div>
+        <div class="link-item"><div class="row-icon" style="width:26px;height:26px;background:var(--card-2); color:var(--text-2)"><i class="ti ti-device-desktop" style="font-size:12px"></i></div><div style="font-size:11.5px;">Hosting VantaSystem</div><div style="margin-left:auto; font-size:10px; color:var(--text-3)" class="mono">$68.500/mes</div></div>
+      </div>
+
+      <div style="margin-top:14px; padding:11px 13px; border-radius:12px; background:var(--card-2); font-size:10px; color:var(--text-3); line-height:1.5;">
+        <i class="ti ti-info-circle"></i> Al vincularlo, este pago cuenta como "arriendo de agosto pagado" — y en Balance verás que ya no está pendiente este mes.
+      </div>
+
+      <div class="btn" style="background:var(--lime); color:var(--lime-text)">Continuar</div>
+    </div></div>
+  </div>
+
+  <!-- ============ TRANSFERENCIA — paso 1 ============ -->
+  <div>
+    <div class="device-label">Boceto — Transferencia (elegir cuentas)</div>
+    <div class="frame"><div class="screen">
+      <div class="hdr"><div class="hdr-btn"><i class="ti ti-x"></i></div><div class="hdr-title">Nuevo movimiento</div><div style="width:32px"></div></div>
+
+      <div class="seg">
+        <div class="seg-btn">Egreso</div>
+        <div class="seg-btn">Ingreso</div>
+        <div class="seg-btn active-trf">Transferencia</div>
+      </div>
+
+      <div class="amt"><div class="num mono" style="color:var(--lavender)">$50.000</div><div class="cap">Se mueve entre tus cuentas — no afecta tu balance total</div></div>
+
+      <div class="lbl">Desde</div>
+      <div class="card">
+        <div class="row" style="border-bottom:none;">
+          <div class="row-icon" style="background:var(--lime-dim); color:var(--lime)"><i class="ti ti-cash"></i></div>
+          <div><div class="row-title">Efectivo</div><div class="row-sub">$180.000 disponible</div></div>
+          <i class="ti ti-chevron-right chevron"></i>
+        </div>
+      </div>
+
+      <div class="transfer-arrow">
+        <div class="transfer-line"></div>
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--lavender-dim); color:var(--lavender); display:flex; align-items:center; justify-content:center;"><i class="ti ti-arrow-down"></i></div>
+        <div class="transfer-line"></div>
+      </div>
+
+      <div class="lbl" style="margin-top:4px;">Hacia</div>
+      <div class="card">
+        <div class="row" style="border-bottom:none;">
+          <div class="row-icon" style="background:var(--lavender-dim); color:var(--lavender)"><i class="ti ti-device-mobile"></i></div>
+          <div><div class="row-title">Nequi</div><div class="row-sub">$612.000 disponible</div></div>
+          <i class="ti ti-chevron-right chevron"></i>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:11px 13px; border-radius:12px; background:var(--card-2); font-size:10px; color:var(--text-3); line-height:1.5;">
+        <i class="ti ti-info-circle"></i> Efectivo baja a $130.000 y Nequi sube a $662.000. No cuenta como ingreso ni egreso en tus reportes.
+      </div>
+
+      <div class="btn" style="background:var(--lavender); color:#1c1330">Guardar transferencia</div>
+    </div></div>
+  </div>
+
+  <!-- ============ TRANSFERENCIA — como se ve en Movimientos ============ -->
+  <div>
+    <div class="device-label">Boceto — Cómo se ve en la lista</div>
+    <div class="frame"><div class="screen">
+      <div class="hdr"><div class="hdr-btn"><i class="ti ti-arrow-left"></i></div><div class="hdr-title">Movimientos</div><div class="hdr-btn"><i class="ti ti-x"></i></div></div>
+
+      <div class="lbl" style="margin-top:2px;">Hoy</div>
+      <div class="row" style="background:var(--card); border-radius:16px; margin-bottom:10px; border-bottom:none;">
+        <div class="row-icon" style="background:var(--lavender-dim); color:var(--lavender)"><i class="ti ti-arrows-exchange"></i></div>
+        <div><div class="row-title">Efectivo → Nequi</div><div class="row-sub">Transferencia</div></div>
+        <div style="margin-left:auto; font-size:12.5px; color:var(--lavender)" class="mono">$50.000</div>
+      </div>
+      <div class="row" style="background:var(--card); border-radius:16px; margin-bottom:10px; border-bottom:none;">
+        <div class="row-icon" style="background:var(--yellow-dim); color:var(--yellow)"><i class="ti ti-home"></i></div>
+        <div><div class="row-title">Arriendo</div><div class="row-sub">Vivienda · Gasto fijo pagado</div></div>
+        <div style="margin-left:auto; font-size:12.5px; color:var(--coral)" class="mono">–$900.000</div>
+      </div>
+      <div class="row" style="background:var(--card); border-radius:16px; border-bottom:none;">
+        <div class="row-icon" style="background:var(--coral-dim); color:var(--coral)"><i class="ti ti-scale"></i></div>
+        <div><div class="row-title">Abono préstamo Kuro</div><div class="row-sub">Deuda · $80K capital + $20K interés</div></div>
+        <div style="margin-left:auto; font-size:12.5px; color:var(--coral)" class="mono">–$100.000</div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

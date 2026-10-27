@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zafra — Selector de categorías</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+    --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+    --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+    --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+    --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+    --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scrollbar-width:thin; scrollbar-color:#2C2C2F transparent;}
+  ::-webkit-scrollbar{width:6px; height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2C2C2F; border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#57575F;}
+  body{background:#0c0c0d; color:var(--text-1); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; padding:44px 24px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .stage{display:flex; flex-wrap:wrap; gap:26px; align-items:flex-start; justify-content:center;}
+  .device-label{text-align:center; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:12px;}
+  .step-num{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--lime); color:var(--lime-text); font-size:10px; font-weight:700; margin-right:6px;}
+
+  .phone-frame{width:340px; height:738px; background:#000; border-radius:44px; padding:11px; box-shadow:0 0 0 1px #2a2a2c;}
+  .phone-screen{background:var(--bg); width:100%; height:100%; border-radius:33px; overflow:hidden; position:relative; display:flex; flex-direction:column;}
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:90px; height:20px; background:#000; border-radius:12px; z-index:6;}
+  .status-row{display:flex; justify-content:space-between; padding:14px 20px 4px; font-size:11px; color:var(--text-2); font-family:'JetBrains Mono',monospace;}
+
+  .sheet-hdr{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 6px;}
+  .sheet-close{width:32px; height:32px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:14px;}
+  .sheet-title{font-size:13.5px; font-weight:600; color:var(--text-2);}
+
+  .scroll3{flex:1; overflow-y:auto; padding:4px 18px 20px;}
+  .amount-mini{text-align:center; padding:10px 0 18px;}
+  .amount-mini .v{font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .amount-mini .t{font-size:11px; color:var(--coral); margin-top:2px;}
+
+  .field-label{font-size:11px; color:var(--text-2); margin:14px 0 8px; text-transform:uppercase; letter-spacing:0.08em;}
+
+  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .cat-chip{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 4px; border-radius:14px; background:var(--card); border:1px solid var(--line); font-size:9.5px; color:var(--text-2); text-align:center;}
+  .cat-chip.sel{background:var(--coral-dim); border-color:var(--coral); color:var(--coral);}
+  .cat-chip.otros{border-style:dashed;}
+  .cat-chip i{font-size:17px;}
+  .cat-chip .most-used-badge{position:relative;}
+  .freq-dot{position:absolute; top:-3px; right:-3px; width:7px; height:7px; border-radius:50%; background:var(--lime);}
+
+  .input-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .input-row i{color:var(--text-3); font-size:16px;}
+  .input-row .fake-input{background:none; border:none; color:var(--text-1); font-size:13px; flex:1;}
+  .input-row .fake-input.placeholder{color:var(--text-3);}
+
+  .save-btn{background:var(--lime); color:var(--lime-text); border-radius:18px; padding:16px; text-align:center; font-weight:700; font-size:14px; margin-top:18px;}
+
+  /* bottom sheet overlay */
+  .overlay{position:absolute; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; z-index:10;}
+  .bottom-sheet{
+    width:100%; background:var(--bg); border-radius:26px 26px 0 0; border-top:1px solid var(--line);
+    padding:14px 18px 24px; max-height:82%; display:flex; flex-direction:column;
+  }
+  .sheet-handle{width:36px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 14px;}
+  .sheet-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .sheet-heading{font-size:15px; font-weight:600; font-family:'Space Grotesk',sans-serif;}
+  .search-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:9px; margin-bottom:16px;}
+  .search-row i{color:var(--text-3); font-size:15px;}
+  .search-row span{color:var(--text-3); font-size:12.5px;}
+
+  .full-cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; overflow-y:auto;}
+  .full-cat-chip{display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 6px; border-radius:16px; background:var(--card); border:1px solid var(--line); font-size:10.5px; color:var(--text-2); text-align:center;}
+  .full-cat-chip i{font-size:19px;}
+  .full-cat-chip.highlight{border-color:var(--coral); background:var(--coral-dim); color:var(--coral);}
+  .full-cat-chip.highlight i{color:var(--coral);}
+
+  .tap-hint{
+    position:absolute; z-index:20; background:var(--lime); color:var(--lime-text); font-size:10.5px; font-weight:700;
+    padding:5px 10px; border-radius:10px; display:flex; align-items:center; gap:4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- STEP 1: default state with top 3 + otros -->
+  <div>
+    <div class="device-label"><span class="step-num">1</span>Categorías: top 3 + "Otros"</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="sheet-hdr">
+        <div class="sheet-close"><i class="ti ti-arrow-left"></i></div>
+        <div class="sheet-title">Detalles del egreso</div>
+        <div class="sheet-close"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="scroll3">
+        <div class="amount-mini"><div class="v mono">$9.000</div><div class="t">Egreso</div></div>
+
+        <div class="field-label">Categoría · las que más usas</div>
+        <div class="cat-grid">
+          <div class="cat-chip sel"><i class="ti ti-utensils"></i>Comida</div>
+          <div class="cat-chip"><i class="ti ti-bike"></i>Transp.</div>
+          <div class="cat-chip"><i class="ti ti-device-desktop"></i>Suscrip.</div>
+          <div class="cat-chip otros"><i class="ti ti-dots"></i>Otros</div>
+        </div>
+
+        <div class="field-label">Detalles</div>
+        <div class="input-row"><i class="ti ti-pencil"></i><span class="fake-input">Monster</span></div>
+        <div class="input-row"><i class="ti ti-map-pin"></i><span class="fake-input">Minimercado</span></div>
+
+        <div class="save-btn">Guardar egreso</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- STEP 2: tap otros -> sheet opens -->
+  <div>
+    <div class="device-label"><span class="step-num">2</span>Tocas "Otros" → se abre el listado</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="sheet-hdr">
+        <div class="sheet-close"><i class="ti ti-arrow-left"></i></div>
+        <div class="sheet-title">Detalles del egreso</div>
+        <div class="sheet-close"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="scroll3">
+        <div class="amount-mini"><div class="v mono">$9.000</div><div class="t">Egreso</div></div>
+        <div class="field-label">Categoría · las que más usas</div>
+        <div class="cat-grid">
+          <div class="cat-chip"><i class="ti ti-utensils"></i>Comida</div>
+          <div class="cat-chip"><i class="ti ti-bike"></i>Transp.</div>
+          <div class="cat-chip"><i class="ti ti-device-desktop"></i>Suscrip.</div>
+          <div class="cat-chip otros sel"><i class="ti ti-dots"></i>Otros</div>
+        </div>
+      </div>
+
+      <div class="overlay">
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-top"><div class="sheet-heading">Todas las categorías</div><div class="sheet-close"><i class="ti ti-x"></i></div></div>
+          <div class="search-row"><i class="ti ti-search"></i><span>Buscar categoría...</span></div>
+          <div class="full-cat-grid">
+            <div class="full-cat-chip"><i class="ti ti-utensils"></i>Comida</div>
+            <div class="full-cat-chip"><i class="ti ti-bike"></i>Transporte</div>
+            <div class="full-cat-chip"><i class="ti ti-home"></i>Vivienda</div>
+            <div class="full-cat-chip highlight"><i class="ti ti-device-desktop"></i>Suscripciones</div>
+            <div class="full-cat-chip"><i class="ti ti-gamepad-2"></i>Entretenim.</div>
+            <div class="full-cat-chip"><i class="ti ti-heart"></i>Salud</div>
+            <div class="full-cat-chip"><i class="ti ti-school"></i>Educación</div>
+            <div class="full-cat-chip"><i class="ti ti-paw"></i>Mascotas</div>
+            <div class="full-cat-chip"><i class="ti ti-shirt"></i>Ropa</div>
+            <div class="full-cat-chip"><i class="ti ti-gift"></i>Regalos</div>
+            <div class="full-cat-chip"><i class="ti ti-plane"></i>Viajes</div>
+            <div class="full-cat-chip"><i class="ti ti-dots-circle-horizontal"></i>Otros</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- STEP 3: after picking Suscripciones -->
+  <div>
+    <div class="device-label"><span class="step-num">3</span>"Otros" ahora es la elegida</div>
+    <div class="phone-frame"><div class="phone-screen">
+      <div class="notch"></div>
+      <div class="status-row"><span>9:41</span><span><i class="ti ti-wifi"></i></span></div>
+
+      <div class="sheet-hdr">
+        <div class="sheet-close"><i class="ti ti-arrow-left"></i></div>
+        <div class="sheet-title">Detalles del egreso</div>
+        <div class="sheet-close"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="scroll3">
+        <div class="amount-mini"><div class="v mono">$9.000</div><div class="t">Egreso</div></div>
+
+        <div class="field-label">Categoría · las que más usas</div>
+        <div class="cat-grid">
+          <div class="cat-chip"><i class="ti ti-utensils"></i>Comida</div>
+          <div class="cat-chip"><i class="ti ti-bike"></i>Transp.</div>
+          <div class="cat-chip"><i class="ti ti-device-desktop"></i>Suscrip.</div>
+          <div class="cat-chip sel" style="position:relative;"><i class="ti ti-device-desktop"></i>Suscrip.<div class="freq-dot" style="background:var(--coral)"></div></div>
+        </div>
+        <div style="font-size:10px; color:var(--text-3); margin-top:6px; display:flex; align-items:center; gap:4px;"><i class="ti ti-arrow-back-up" style="font-size:12px"></i> Toca de nuevo para cambiarla</div>
+
+        <div class="field-label">Detalles</div>
+        <div class="input-row"><i class="ti ti-pencil"></i><span class="fake-input">Monster</span></div>
+        <div class="input-row"><i class="ti ti-map-pin"></i><span class="fake-input">Minimercado</span></div>
+
+        <div class="save-btn">Guardar egreso</div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+</body>
+</html>

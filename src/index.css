@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+:root{
+  --bg:#131313; --card:#1D1D1F; --card-2:#242426; --line:#2C2C2F;
+  --text-1:#F5F5F3; --text-2:#9A9A9E; --text-3:#5C5C60;
+  --lime:#C6FF4D; --lime-dim:rgba(198,255,77,0.14); --lime-text:#1A2400;
+  --coral:#FF7A6E; --coral-dim:rgba(255,122,110,0.14);
+  --yellow:#FFD666; --yellow-dim:rgba(255,214,102,0.14);
+  --lavender:#B9A6F5; --lavender-dim:rgba(185,166,245,0.14);
+  --pink:#FF8FC7; --pink-dim:rgba(255,143,199,0.14);
+  --blue:#6EC3FF; --blue-dim:rgba(110,195,255,0.14);
+  --teal:#5FE0C8; --teal-dim:rgba(95,224,200,0.14);
+  /* Fondo SÓLIDO para las tarjetas "hero" (Patrimonio neto, Debes en
+     total) — mismo verde exacto del botón "+" (--lime), sin resplandor ni
+     tinte diluido; Felo lo pidió así después de ver el tinte oscuro. Es
+     un alias a --lime (no un color propio) para que, si el lima de marca
+     cambia algún día, la tarjeta lo siga automáticamente. */
+  --card-lime:var(--lime);
+  /* "Tienes"/"Debes" sobre la tarjeta lima necesitan leerse como
+     verde=ganancia / rojo=pérdida de un vistazo, no solo como "texto
+     oscuro" — ni --lime (se pierde, es el mismo color del fondo) ni
+     --coral (muy claro, también se pierde) sirven encima de un fondo tan
+     brillante. Son un verde bosque y un rojo vino bien saturados y
+     oscurecidos lo justo para contrastar fuerte contra el lima (~8:1),
+     mientras se siguen viendo claramente como "verde" y "rojo" y no como
+     variantes de negro. */
+  --lime-pos:#1C4A0F;
+  --lime-neg:#8A1428;
+}
+/* Modo claro — mismos nombres de variable, así ninguna pantalla necesita
+   cambiar su código, solo cambia lo que esas variables valen. Los colores
+   de acento (lime, coral, etc.) van un poco más oscuros/saturados que en
+   oscuro — el mismo tono neón que se ve bien sobre negro pierde contraste
+   como TEXTO sobre blanco, así que se ajustan para seguir siendo legibles
+   sin dejar de sentirse de la misma familia de color. */
+:root[data-theme="light"]{
+  --bg:#F7F7F5; --card:#FFFFFF; --card-2:#EFEFEC; --line:#E2E2DE;
+  --text-1:#18181B; --text-2:#6B6B70; --text-3:#9C9CA0;
+  --lime:#7FB81A; --lime-dim:rgba(127,184,26,0.13); --lime-text:#0A1400;
+  --coral:#E0473A; --coral-dim:rgba(224,71,58,0.12);
+  --yellow:#C99400; --yellow-dim:rgba(201,148,0,0.12);
+  --lavender:#7C5CE0; --lavender-dim:rgba(124,92,224,0.12);
+  --pink:#DB4A88; --pink-dim:rgba(219,74,136,0.12);
+  --blue:#2E7BCE; --blue-dim:rgba(46,123,206,0.12);
+  --teal:#0FA080; --teal-dim:rgba(15,160,128,0.12);
+  --card-lime:var(--lime);
+  /* El lima de este tema es bastante más oscuro que el de modo oscuro
+     (menos brillo), así que --lime-pos/--lime-neg van aún más oscurecidos
+     para mantener el mismo nivel de contraste (~6:1) contra ese fondo. */
+  --lime-pos:#0F2E08;
+  --lime-neg:#5C0E1B;
+}
+*{box-sizing:border-box;}
+html,body,#root{height:100%;}
+/* Refuerzo para celulares reales: 100% depende de que los ancestros ya
+   tengan una altura fija, pero la barra de direcciones del navegador puede
+   cambiar la altura visible del viewport. dvh se ajusta a la altura real
+   visible; donde no esté soportado, el height:100% de arriba sigue de
+   respaldo. */
+@supports (height: 100dvh) {
+  html,body,#root{height:100dvh;}
+}
+body{
+  background:var(--bg); color:var(--text-1);
+  font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  margin:0; overscroll-behavior:none;
+}
+/* Ventanita flotante de "agregar rápido" (ver AgregarRapido.tsx y
+   QuickAddActivity.java) — el body{background:var(--bg)} de arriba es
+   opaco a propósito para el resto de la app, pero acá tapa por completo
+   la pantalla de inicio que debería verse oscurecida detrás. Se activa
+   esta clase solo en esa pantalla; el div propio de AgregarRapido pinta
+   su rgba(0,0,0,0.6) encima, ya con transparencia real. */
+body.modo-rapido{ background:transparent !important; }
+.font-display{font-family:'Space Grotesk',sans-serif;}
+.font-mono{font-family:'JetBrains Mono',monospace;}
+::-webkit-scrollbar{width:6px; height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
+input, button{font-family:inherit;}
+
+/* Espacio de scroll para que el contenido nunca quede tapado por la
+   tab bar inferior (celular). 7rem de sobra sobre la altura real de la
+   barra (~4.3rem) + soporte para el safe-area del gesto/home indicator
+   en celulares con notch. En desktop (rail lateral, sin tab bar) baja a 1.5rem. */
+.scroll-bottom-clear {
+  padding-bottom: 7rem;
+}
+@supports (padding: max(0px)) {
+  .scroll-bottom-clear {
+    padding-bottom: max(7rem, calc(5.5rem + env(safe-area-inset-bottom)));
+  }
+}
+@media (min-width: 768px) {
+  .scroll-bottom-clear { padding-bottom: 2.5rem; }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes screen-slide-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.page-transition { animation: page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.screen-transition { animation: screen-slide-in 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Botón "+" flotante — levitación sutil, para que se sienta vivo sin
+   distraer (sube/baja unos pocos px, despacio). */
+@keyframes levitar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.fab-levitar { animation: levitar 2.6s ease-in-out infinite; }
+
+/* Pantalla de "Movimiento guardado" — el check aparece con un pequeño
+   rebote, y el botón "Listo" tiene una barrita que se va llenando en 3s
+   (el mismo tiempo que tarda en cerrarse solo). */
+@keyframes check-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes check-draw {
+  0%, 40% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.check-pop { animation: check-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.check-draw { animation: check-draw 0.4s ease-out 0.15s both; }
+
+@keyframes listo-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.listo-progress {
+  position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0,0,0,0.14);
+  animation-name: listo-progress; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition, .screen-transition { animation: none; }
+  .fab-levitar { animation: none; }
+  .check-pop, .check-draw, .listo-progress { animation: none; }
+}
+
+/* Oculta el ojito nativo de "revelar contraseña" de Edge/IE — ver
+   AuthScreen.tsx. Ese botón es solo del navegador (::-ms-reveal), no
+   algo que la app ponga; no aparece en el APK real (WebView del
+   sistema), pero sí al probar en Edge durante desarrollo, duplicándose
+   con nuestro propio ojito. Chrome/Firefox no tienen este pseudo-
+   elemento, así que ahí esta regla simplemente no hace nada. */
+.cf-password-input::-ms-reveal,
+.cf-password-input::-ms-clear {
+  display: none;
+}
