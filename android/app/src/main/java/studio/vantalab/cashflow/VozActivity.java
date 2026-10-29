@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.RecognizerIntent;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
@@ -27,6 +29,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -72,6 +75,12 @@ public class VozActivity extends Activity {
     private int preguntasCuenta = 0;
     private boolean enCurso = false;
 
+    // Voz de la app: lee en voz alta la pregunta ("¿Cómo pagaste?") antes
+    // de abrir el dictado, como hace Siri. Si el motor de voz no está listo
+    // o falla, se abre el dictado igual, sin esperar.
+    private TextToSpeech tts;
+    private boolean ttsListo = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +91,14 @@ public class VozActivity extends Activity {
             enCurso = savedInstanceState.getBoolean("enCurso", false);
             if (enCurso) return; // el resultado del dictado llega por onActivityResult
         }
+
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int r = tts.setLanguage(new Locale("es", "CO"));
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) r = tts.setLanguage(new Locale("es"));
+                ttsListo = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+            }
+        });
 
         if (token() == null) {
             avisarYCerrar("Abre CashFlow una vez con tu cuenta para activar la voz.");
@@ -105,6 +122,25 @@ public class VozActivity extends Activity {
         SharedPreferences p = getSharedPreferences(PREFS_CAPACITOR, Context.MODE_PRIVATE);
         String t = p.getString(LLAVE_TOKEN, null);
         return (t == null || t.trim().isEmpty()) ? null : t.trim();
+    }
+
+    private void hablarYEscuchar(final int requestCode, final String pregunta) {
+        if (tts == null || !ttsListo) { escuchar(requestCode, pregunta); return; }
+        final boolean[] yaAbrio = { false };
+        final Runnable abrir = () -> {
+            if (yaAbrio[0] || isFinishing()) return;
+            yaAbrio[0] = true;
+            escuchar(requestCode, pregunta);
+        };
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) { }
+            @Override public void onDone(String id) { ui.post(abrir); }
+            @Override public void onError(String id) { ui.post(abrir); }
+        });
+        int r = tts.speak(pregunta, TextToSpeech.QUEUE_FLUSH, null, "pregunta");
+        if (r != TextToSpeech.SUCCESS) { abrir.run(); return; }
+        // Red de seguridad: si el motor nunca avisa que terminó, abrir igual.
+        ui.postDelayed(abrir, 4000);
     }
 
     private void escuchar(int requestCode, String pregunta) {
@@ -167,7 +203,7 @@ public class VozActivity extends Activity {
                 avisarYCerrar("No reconocí la cuenta. No guardé nada; intenta de nuevo.");
                 return;
             }
-            escuchar(REQ_METODO, res.optString("pregunta", "¿Cómo pagaste?"));
+            hablarYEscuchar(REQ_METODO, res.optString("pregunta", "¿Cómo pagaste?"));
             return;
         }
         if (!res.optBoolean("ok", false)) {
@@ -240,5 +276,6 @@ public class VozActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         red.shutdown();
+        if (tts != null) { tts.stop(); tts.shutdown(); }
     }
 }

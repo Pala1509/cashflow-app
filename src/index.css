@@ -35,7 +35,8 @@
    como TEXTO sobre blanco, así que se ajustan para seguir siendo legibles
    sin dejar de sentirse de la misma familia de color. */
 :root[data-theme="light"]{
-  --bg:#F7F7F5; --card:#FFFFFF; --card-2:#EFEFEC; --line:#E2E2DE;
+  /* Blanco cálido (hueso) en vez de blanco puro: encandila menos. */
+  --bg:#F2F0EB; --card:#FBFAF7; --card-2:#E9E6DF; --line:#DCD8CF;
   --text-1:#18181B; --text-2:#6B6B70; --text-3:#9C9CA0;
   --lime:#7FB81A; --lime-dim:rgba(127,184,26,0.13); --lime-text:#0A1400;
   --coral:#E0473A; --coral-dim:rgba(224,71,58,0.12);
