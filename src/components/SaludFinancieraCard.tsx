@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, HeartPulse } from 'lucide-react'
+import { ChevronDown, ChevronRight, HeartPulse, Share2 } from 'lucide-react'
+import SaludShareCard from './SaludShareCard'
+import { compartirNodoComoImagen } from '../lib/compartirImagen'
 import { useSaludFinanciera } from '../hooks/useSaludFinanciera'
 import { useIdioma } from '../lib/IdiomaContext'
 import type { ClaveComponente, ComponenteSalud, NivelSalud } from '../lib/saludFinanciera'
@@ -16,6 +18,8 @@ export default function SaludFinancieraCard() {
   const { t } = useIdioma()
   const { salud, loading } = useSaludFinanciera()
   const [abierto, setAbierto] = useState(false)
+  const shareRef = useRef<HTMLDivElement>(null)
+  const [compartiendo, setCompartiendo] = useState(false)
   if (loading) return null
 
   if (salud.puntaje === null || salud.nivel === null) {
@@ -83,8 +87,35 @@ export default function SaludFinancieraCard() {
             </div>
           ))}
           <div className="text-[9.5px] leading-relaxed" style={{ color: 'var(--text-3)' }}>{t('salud_nota')}</div>
+          <button
+            onClick={async () => {
+              if (!shareRef.current || compartiendo) return
+              setCompartiendo(true)
+              try { await compartirNodoComoImagen(shareRef.current, `cashflow-salud-${salud.puntaje}.png`, t('salud_compartir')) } catch { /* canceló */ }
+              setCompartiendo(false)
+            }}
+            disabled={compartiendo}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-bold disabled:opacity-50"
+            style={{ background: 'var(--lime)', color: '#000000' }}
+          >
+            <Share2 size={13} /> {compartiendo ? t('salud_compartiendo') : t('salud_compartir')}
+          </button>
         </div>
       )}
+
+      <div style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none' }}>
+        <SaludShareCard
+          ref={shareRef}
+          data={{
+            puntaje: salud.puntaje,
+            nivel: salud.nivel,
+            nivelTexto: t(`salud_nivel_${salud.nivel}` as 'salud_nivel_bajo'),
+            titulo: t('salud_titulo'),
+            componentes: componentes.map((c) => ({ nombre: t(`salud_comp_${c.clave}` as 'salud_comp_colchon'), c })),
+            pie: t('salud_share_pie'),
+          }}
+        />
+      </div>
     </div>
   )
 }

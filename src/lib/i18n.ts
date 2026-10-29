@@ -1129,6 +1129,9 @@ export const TRADUCCIONES = {
   deudas_cobrar_whatsapp: { es: 'Cobrar por WhatsApp', en: 'Request payment on WhatsApp' },
   deudas_cobro_mensaje: { es: '¡Hola! ¿Cómo vas? Te escribo para recordarte los {monto} que tenemos pendientes ({nombre}){conFecha}. Me avisas cuando me los puedas pasar. ¡Gracias!', en: 'Hi! How are you? Just a reminder about the {monto} still pending ({nombre}){conFecha}. Let me know when you can pay me back. Thanks!' },
   deudas_cobro_con_fecha: { es: ', que quedamos para el {fecha}', en: ', which we agreed for {fecha}' },
+  salud_compartir: { es: 'Compartir mi puntaje', en: 'Share my score' },
+  salud_compartiendo: { es: 'Preparando imagen…', en: 'Preparing image…' },
+  salud_share_pie: { es: 'Calcula la tuya gratis en CashFlow', en: 'Get yours free on CashFlow' },
 } as const
 
 export type ClaveTraduccion = keyof typeof TRADUCCIONES
