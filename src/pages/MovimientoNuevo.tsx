@@ -80,6 +80,13 @@ type TipoMovimiento = 'normal' | 'fijo' | 'deuda' | 'credito'
 
 export default function MovimientoNuevo() {
   const navigate = useNavigate()
+  // Si se llegó directo (desde el widget o un enlace) no hay pantalla
+  // anterior en el historial: en vez de quedarse pegado, vuelve a Inicio.
+  const volver = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+    if (idx > 0) navigate(-1)
+    else navigate('/inicio', { replace: true })
+  }
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const tipoInicial = searchParams.get('tipo') === 'ingreso' ? 'ingreso' : 'egreso'
@@ -420,7 +427,7 @@ export default function MovimientoNuevo() {
     setDeleting(false)
     if (error) { await appAlert(t('mov_error_borrar', { msg: error.message })); return }
     await reload()
-    navigate(-1)
+    volver()
   }
 
   function catInfoName(id: string | null) {
@@ -575,7 +582,7 @@ export default function MovimientoNuevo() {
   if (step === 'monto') {
     return (
       <div className="flex h-full flex-col">
-        <Header title={isEdit ? t('mov_editar_titulo') : t('mov_nuevo_titulo')} onClose={() => navigate(-1)} />
+        <Header title={isEdit ? t('mov_editar_titulo') : t('mov_nuevo_titulo')} onClose={() => volver()} />
 
         <div className="mx-5 mt-3.5 flex flex-shrink-0 gap-2">
           <TypePill active={tipo === 'ingreso'} activeStyle={{ background: 'var(--lime-dim)', color: 'var(--lime)', borderColor: 'var(--lime)' }} onClick={() => setTipo('ingreso')}>
@@ -654,7 +661,7 @@ export default function MovimientoNuevo() {
     if (tipo === 'transferencia') {
       return (
         <div className="flex h-full flex-col">
-          <Header title={t('mov_transferencia')} onBack={() => (isEdit ? navigate(-1) : setStep('monto'))} onClose={() => navigate(-1)} />
+          <Header title={t('mov_transferencia')} onBack={() => (isEdit ? volver() : setStep('monto'))} onClose={() => volver()} />
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <div className="flex min-h-full flex-col justify-center py-4">
             <button onClick={() => setStep('monto')} className="flex w-full flex-col items-center gap-1 py-2.5">
@@ -744,7 +751,7 @@ export default function MovimientoNuevo() {
       const misDeudas = deudas.filter((d) => d.tipo === 'deuda')
       return (
         <div className="flex h-full flex-col">
-          <Header title={t('mov_cual_deuda_titulo')} onBack={() => (isEdit ? navigate(-1) : setTipoMovimiento('normal'))} onClose={() => navigate(-1)} />
+          <Header title={t('mov_cual_deuda_titulo')} onBack={() => (isEdit ? volver() : setTipoMovimiento('normal'))} onClose={() => volver()} />
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <div className="mb-4 mt-1 text-[11.5px]" style={{ color: 'var(--text-2)' }}>
               {t('mov_llevamos_registrar_pago')}
@@ -771,7 +778,7 @@ export default function MovimientoNuevo() {
       const misCreditos = deudas.filter((d) => d.tipo === 'credito')
       return (
         <div className="flex h-full flex-col">
-          <Header title={t('mov_cual_credito_titulo')} onBack={() => (isEdit ? navigate(-1) : setTipoMovimiento('normal'))} onClose={() => navigate(-1)} />
+          <Header title={t('mov_cual_credito_titulo')} onBack={() => (isEdit ? volver() : setTipoMovimiento('normal'))} onClose={() => volver()} />
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
             <div className="mb-4 mt-1 text-[11.5px]" style={{ color: 'var(--text-2)' }}>
               {t('mov_llevamos_registrar_cobro')}
@@ -796,7 +803,7 @@ export default function MovimientoNuevo() {
     // ---- Flujo normal: ingreso / egreso ----
     return (
       <div className="flex h-full flex-col">
-        <Header title={isEdit ? t('mov_editar_titulo') : t('mov_detalles')} onBack={() => (isEdit ? navigate(-1) : setStep('monto'))} onClose={() => navigate(-1)} />
+        <Header title={isEdit ? t('mov_editar_titulo') : t('mov_detalles')} onBack={() => (isEdit ? volver() : setStep('monto'))} onClose={() => volver()} />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
           <button onClick={() => setStep('monto')} className="flex w-full flex-col items-center gap-1 py-2.5">

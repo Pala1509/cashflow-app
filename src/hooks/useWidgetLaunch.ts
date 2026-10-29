@@ -11,11 +11,20 @@ import { leerAccionWidget } from '../lib/widget'
 export function useWidgetLaunch() {
   const navigate = useNavigate()
 
+  // Se pone Inicio debajo antes de abrir "nuevo movimiento": si la app
+  // arrancó directo desde el widget, el historial está vacío y la X / la
+  // flecha de atrás (navigate(-1)) no tendrían a dónde volver — la pantalla
+  // quedaba bloqueada.
+  const abrirNuevo = (tipo: 'ingreso' | 'egreso') => {
+    navigate('/inicio', { replace: true })
+    navigate(`/movimiento/nuevo?tipo=${tipo}`)
+  }
+
   useEffect(() => {
     async function revisar() {
       const accion = await leerAccionWidget()
       if (accion === 'ingreso' || accion === 'egreso') {
-        navigate(`/movimiento/nuevo?tipo=${accion}`)
+        abrirNuevo(accion)
       }
     }
 
@@ -29,7 +38,7 @@ export function useWidgetLaunch() {
     const abrirDesdeUrl = (url?: string) => {
       if (!url || !url.startsWith('cashflow://')) return
       const tipo = new URL(url.replace('cashflow://', 'https://x/')).searchParams.get('tipo')
-      if (tipo === 'ingreso' || tipo === 'egreso') navigate(`/movimiento/nuevo?tipo=${tipo}`)
+      if (tipo === 'ingreso' || tipo === 'egreso') abrirNuevo(tipo)
     }
     CapApp.getLaunchUrl().then((r) => abrirDesdeUrl(r?.url)).catch(() => {})
     const urlListener = CapApp.addListener('appUrlOpen', (e) => abrirDesdeUrl(e.url))
