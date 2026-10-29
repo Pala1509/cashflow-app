@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { appConfirm, appAlert } from '../lib/dialogs'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, X, Trash2, MoreHorizontal, ArrowLeftRight, Search } from 'lucide-react'
+import SwipeBorrar from '../components/SwipeBorrar'
 import { supabase } from '../lib/supabase'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { parseLocalDate } from '../lib/date'
@@ -65,6 +66,14 @@ export default function Movimientos() {
   const delMes = transacciones.filter((t) => { const d = parseLocalDate(t.fecha); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() })
   const ingresosDelMes = delMes.filter((t) => t.tipo === 'ingreso').reduce((s, t) => s + t.monto, 0)
   const egresosDelMes = delMes.filter((t) => t.tipo === 'egreso').reduce((s, t) => s + t.monto + t.monto_4x1000, 0)
+
+  // Deslizar de derecha a izquierda (SwipeBorrar): borra sin preguntar,
+  // igual que en Inicio — el gesto ya es la confirmación.
+  async function borrarDeslizando(id: string) {
+    const { error } = await supabase.from('transacciones').delete().eq('id', id)
+    if (error) { await appAlert(tr('mv_error_borrar', { msg: error.message })); return }
+    await reload()
+  }
 
   async function remove(id: string) {
     if (!(await appConfirm(tr('mv_confirmar_borrar'), { danger: true }))) return
@@ -151,8 +160,10 @@ export default function Movimientos() {
                     const accent = esTransferencia ? 'var(--lavender)' : t.tipo === 'ingreso' ? 'var(--lime)' : 'var(--coral)'
                     const accentDim = esTransferencia ? 'var(--lavender-dim)' : t.tipo === 'ingreso' ? 'var(--lime-dim)' : 'var(--coral-dim)'
                     return (
-                      <div key={t.id} className="mb-2.5 flex items-center gap-3 rounded-2xl p-3.5" style={{ background: 'var(--card)' }}>
-                        <button onClick={() => navigate(`/movimiento/${t.id}/editar`)} className="flex flex-1 items-center gap-3 text-left">
+                      <div key={t.id} className="mb-2.5 overflow-hidden rounded-2xl">
+                      <SwipeBorrar etiqueta={tr('cn_borrar')} onBorrar={() => borrarDeslizando(t.id)} onTap={() => navigate(`/movimiento/${t.id}/editar`)}>
+                      <div className="flex items-center gap-3 p-3.5" style={{ background: 'var(--card)' }}>
+                        <div className="flex flex-1 cursor-pointer items-center gap-3 text-left">
                           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: accentDim, color: accent }}>
                             <Icon size={17} />
                           </div>
@@ -167,15 +178,19 @@ export default function Movimientos() {
                           <div className="font-mono text-[13px]" style={{ color: accent }}>
                             {esTransferencia ? '' : t.tipo === 'ingreso' ? '+' : '–'}{fmt(t.monto + t.monto_4x1000)}
                           </div>
-                        </button>
+                        </div>
                         <button
                           onClick={() => remove(t.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
                           disabled={deletingId === t.id}
                           className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full disabled:opacity-40"
                           style={{ color: 'var(--text-3)' }}
                         >
                           <Trash2 size={14} />
                         </button>
+                      </div>
+                      </SwipeBorrar>
                       </div>
                     )
                   })}
