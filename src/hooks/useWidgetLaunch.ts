@@ -21,8 +21,22 @@ export function useWidgetLaunch() {
 
     revisar()
     const listenerPromise = CapApp.addListener('resume', revisar)
+
+    // iPhone: los botones del widget abren la app con un enlace
+    // cashflow://nuevo?tipo=ingreso|egreso (ver ios/App/CashFlowWidget).
+    // Con la app cerrada llega como URL de arranque; con la app abierta,
+    // como evento appUrlOpen.
+    const abrirDesdeUrl = (url?: string) => {
+      if (!url || !url.startsWith('cashflow://')) return
+      const tipo = new URL(url.replace('cashflow://', 'https://x/')).searchParams.get('tipo')
+      if (tipo === 'ingreso' || tipo === 'egreso') navigate(`/movimiento/nuevo?tipo=${tipo}`)
+    }
+    CapApp.getLaunchUrl().then((r) => abrirDesdeUrl(r?.url)).catch(() => {})
+    const urlListener = CapApp.addListener('appUrlOpen', (e) => abrirDesdeUrl(e.url))
+
     return () => {
       listenerPromise.then((listener) => listener.remove())
+      urlListener.then((listener) => listener.remove())
     }
   }, [navigate])
 }

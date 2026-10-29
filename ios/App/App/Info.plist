@@ -97,5 +97,16 @@
 	<array>
 		<string>whatsapp</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>studio.vantalab.cashflow</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cashflow</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
