@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compila CashFlow y abre Xcode / Android Studio para probar.
+# Sube los cambios a GitHub, compila CashFlow y abre Xcode / Android Studio.
 #
 #   ./probar.sh            → iPhone (Xcode)
 #   ./probar.sh android    → Android (Android Studio)
@@ -10,6 +10,12 @@
 set -e
 cd "$(dirname "$0")"
 DESTINO="${1:-ios}"
+
+echo "→ 0/3 Subiendo los cambios a GitHub…"
+if [ -n "$(git status --porcelain)" ]; then
+  echo "   (Hay cambios sin guardar en git; se suben solo los commits que ya existen.)"
+fi
+git push -u origin main || echo "   ⚠ No se pudo subir a GitHub (revisa tu conexión o tu sesión de GitHub). Sigo con la compilación."
 
 echo "→ 1/3 Instalando dependencias (si hace falta)…"
 npm install --no-audit --no-fund
