@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronUp, ChevronDown, Flame, Pencil } from 'lucide-react'
+import { ChevronRight, ChevronUp, ChevronDown, Flame, Pencil, MessageCircle } from 'lucide-react'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -11,6 +11,7 @@ import { useIdioma } from '../lib/IdiomaContext'
 import { nombreCategoria } from '../lib/categoriaI18n'
 import logoBlanco from '../assets/logos/logo-blanco-transparente-web.png'
 import { parseLocalDate } from '../lib/date'
+import { cobrarPorWhatsApp, mensajeCobro } from '../lib/cobrar'
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO')
 
@@ -141,7 +142,7 @@ export default function Deudas() {
     )
   }
 
-  function PanelAbonos({ deudaId, onEditar, editLabel }: { deudaId: string; onEditar: () => void; editLabel: string }) {
+  function PanelAbonos({ deudaId, onEditar, editLabel, onCobrar }: { deudaId: string; onEditar: () => void; editLabel: string; onCobrar?: () => void }) {
     const abonos = resumenAbonos(deudaId)
     return (
       <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: 'var(--line)' }}>
@@ -155,6 +156,11 @@ export default function Deudas() {
               <span className="font-mono" style={{ color: 'var(--lime)' }}>{fmt(a.monto)}</span>
             </div>
           ))
+        )}
+        {onCobrar && (
+          <button onClick={onCobrar} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-bold" style={{ background: '#25D366', color: '#000000' }}>
+            <MessageCircle size={12} /> {t('deudas_cobrar_whatsapp')}
+          </button>
         )}
         <button onClick={onEditar} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-semibold" style={{ background: 'var(--card-2)', color: 'var(--text-2)' }}>
           <Pencil size={12} /> {editLabel}
@@ -354,7 +360,22 @@ export default function Deudas() {
               <div className="ml-auto flex-shrink-0 font-mono text-[13px]" style={{ color: 'var(--yellow)' }}>{fmt(c.capital - c.capital_pagado)}</div>
               {expandida ? <ChevronUp size={14} style={{ color: 'var(--lime)', flexShrink: 0 }} /> : <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />}
               </button>
-              {expandida && <PanelAbonos deudaId={c.id} editLabel={t('deudas_editar_credito')} onEditar={() => navigate(`/cuentas/${c.id}/editar`, { state: { from: '/deudas' } })} />}
+              {expandida && (
+                <PanelAbonos
+                  deudaId={c.id}
+                  editLabel={t('deudas_editar_credito')}
+                  onEditar={() => navigate(`/cuentas/${c.id}/editar`, { state: { from: '/deudas' } })}
+                  onCobrar={c.capital - c.capital_pagado > 0 ? () => cobrarPorWhatsApp(mensajeCobro(
+                    t('deudas_cobro_mensaje'),
+                    {
+                      monto: fmt(c.capital - c.capital_pagado),
+                      nombre: c.nombre,
+                      fecha: c.fecha_limite ? parseLocalDate(c.fecha_limite).toLocaleDateString(idioma === 'en' ? 'en-US' : 'es-CO', { day: 'numeric', month: 'long' }) : null,
+                    },
+                    t('deudas_cobro_con_fecha'),
+                  )) : undefined}
+                />
+              )}
             </div>
           )
         })}

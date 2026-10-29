@@ -93,5 +93,9 @@
 	<string>CashFlow necesita acceso a tus fotos para que elijas tu foto de perfil.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>CashFlow guarda en tus fotos los reportes que decides compartir o descargar.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>whatsapp</string>
+	</array>
 </dict>
 </plist>

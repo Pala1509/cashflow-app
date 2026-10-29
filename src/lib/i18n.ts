@@ -1126,6 +1126,9 @@ export const TRADUCCIONES = {
   prest_llega: { es: 'Te debe llegar a más tardar el {fecha}. Ya está sumada en tu flujo de caja.', en: 'It should arrive by {fecha} at the latest. Already included in your cash flow.' },
   prest_notif_titulo: { es: 'Se viene tu {nombre}', en: 'Your {nombre} is coming' },
   prest_notif_cuerpo: { es: 'Más o menos {monto} a más tardar el {fecha}. ¿Ya pensaste a qué meta la mandas?', en: 'About {monto} by {fecha}. Have you picked a goal for it?' },
+  deudas_cobrar_whatsapp: { es: 'Cobrar por WhatsApp', en: 'Request payment on WhatsApp' },
+  deudas_cobro_mensaje: { es: '¡Hola! ¿Cómo vas? Te escribo para recordarte los {monto} que tenemos pendientes ({nombre}){conFecha}. Me avisas cuando me los puedas pasar. ¡Gracias!', en: 'Hi! How are you? Just a reminder about the {monto} still pending ({nombre}){conFecha}. Let me know when you can pay me back. Thanks!' },
+  deudas_cobro_con_fecha: { es: ', que quedamos para el {fecha}', en: ', which we agreed for {fecha}' },
 } as const
 
 export type ClaveTraduccion = keyof typeof TRADUCCIONES
