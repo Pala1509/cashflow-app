@@ -1116,6 +1116,16 @@ export const TRADUCCIONES = {
   perfil_cuenta_eliminada: { es: 'Tu cuenta fue eliminada. Gracias por usar CashFlow.', en: 'Your account was deleted. Thanks for using CashFlow.' },
   cp_pronto_titulo: { es: 'CashFlow Pro llega muy pronto', en: 'CashFlow Pro is coming soon' },
   cp_pronto_desc: { es: 'Pronto vas a poder activarlo desde aquí. Esto es todo lo que incluye:', en: 'You will be able to turn it on from here soon. Here is everything it includes:' },
+  prest_pregunta_titulo: { es: '¿Recibes prima y cesantías?', en: 'Do you get a bonus (prima) and severance (cesantías)?' },
+  prest_pregunta_desc: { es: 'Vimos tu salario de {monto}. Si es de un empleo formal, CashFlow suma la prima y los intereses de cesantías a tu flujo de caja y te avisa antes de que lleguen.', en: 'We found your salary of {monto}. If it is a formal job, CashFlow adds your prima and severance interest to your cash flow and reminds you before they arrive.' },
+  prest_si: { es: 'Sí, recibo', en: 'Yes, I do' },
+  prest_no: { es: 'No', en: 'No' },
+  prest_prima_junio: { es: 'Prima de junio (estimada)', en: 'June prima (estimated)' },
+  prest_prima_diciembre: { es: 'Prima de diciembre (estimada)', en: 'December prima (estimated)' },
+  prest_intereses: { es: 'Intereses de cesantías (estimados)', en: 'Severance interest (estimated)' },
+  prest_llega: { es: 'Te debe llegar a más tardar el {fecha}. Ya está sumada en tu flujo de caja.', en: 'It should arrive by {fecha} at the latest. Already included in your cash flow.' },
+  prest_notif_titulo: { es: 'Se viene tu {nombre}', en: 'Your {nombre} is coming' },
+  prest_notif_cuerpo: { es: 'Más o menos {monto} a más tardar el {fecha}. ¿Ya pensaste a qué meta la mandas?', en: 'About {monto} by {fecha}. Have you picked a goal for it?' },
 } as const
 
 export type ClaveTraduccion = keyof typeof TRADUCCIONES

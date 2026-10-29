@@ -4,6 +4,7 @@ import { parseLocalDate } from './date'
 import { calcularGastosHormigaProducto } from './gastosHormiga'
 import type { GastoFijo, Presupuesto, Categoria, Transaccion, MetaAhorro, DeudaCredito } from './database.types'
 import type { ResultadoFlujo } from './flujoCaja'
+import type { PagoPrestacion } from './prestaciones'
 
 // IDs de notificación reservados por rango, para poder cancelar/reprogramar
 // sin chocar entre tipos distintos.
@@ -13,6 +14,7 @@ const RANGO_META = 30_000 // 30000-39999
 const RANGO_DEUDA = 40_000 // 40000-49999
 const RANGO_HORMIGA = 50_000 // 50000-59999
 const ID_FLUJO_CAJA = 60_000 // un solo aviso de flujo de caja a la vez
+const ID_PRESTACION = 60_001 // un solo aviso de prima/cesantías a la vez
 
 function idParaGastoFijo(gastoFijoId: string): number {
   return RANGO_GASTO_FIJO + hashCorto(gastoFijoId)
@@ -228,5 +230,35 @@ export async function programarAvisoFlujo(
   const key = `flujo:${hueco.desde}`
   if (yaAvisado(key)) return
   await LocalNotifications.schedule({ notifications: [{ id: ID_FLUJO_CAJA, title: textos.titulo, body: cuerpo, schedule: { at: new Date(Date.now() + 1500) } }] })
+  marcarAvisado(key)
+}
+
+// Prima e intereses de cesantías: aviso 5 días antes de la fecha límite
+// legal (9am), con el monto estimado. Se reprograma cada vez que corre el
+// motor, así que si el usuario ya registró la prima (o dijo que no recibe),
+// el aviso viejo se cancela solo.
+const DIAS_AVISO_PRESTACION = 5
+export async function programarAvisoPrestacion(
+  proximo: PagoPrestacion | null,
+  textos: { titulo: (nombre: string) => string; cuerpo: (monto: string, fecha: string) => string; nombre: (p: PagoPrestacion) => string },
+) {
+  if (!Capacitor.isNativePlatform()) return
+  await LocalNotifications.cancel({ notifications: [{ id: ID_PRESTACION }] })
+  if (!proximo) return
+  const fecha = parseLocalDate(proximo.fecha)
+  const avisoEn = new Date(fecha)
+  avisoEn.setDate(avisoEn.getDate() - DIAS_AVISO_PRESTACION)
+  avisoEn.setHours(9, 0, 0, 0)
+  const fechaTxt = fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+  const titulo = textos.titulo(textos.nombre(proximo))
+  const cuerpo = textos.cuerpo(fmt(proximo.monto), fechaTxt)
+  if (avisoEn.getTime() > Date.now()) {
+    await LocalNotifications.schedule({ notifications: [{ id: ID_PRESTACION, title: titulo, body: cuerpo, schedule: { at: avisoEn, allowWhileIdle: true } }] })
+    return
+  }
+  // Ya estamos a menos de 5 días: avisa ya, una sola vez por pago.
+  const key = `prestacion:${proximo.tipo}:${proximo.fecha}`
+  if (yaAvisado(key)) return
+  await LocalNotifications.schedule({ notifications: [{ id: ID_PRESTACION, title: titulo, body: cuerpo, schedule: { at: new Date(Date.now() + 1500) } }] })
   marcarAvisado(key)
 }

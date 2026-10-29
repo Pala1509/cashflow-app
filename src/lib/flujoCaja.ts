@@ -16,6 +16,7 @@
 
 import { parseLocalDate } from './date'
 import type { Cuenta, IngresoFijo, GastoFijo, DeudaCredito, Transaccion, FrecuenciaFija } from './database.types'
+import { pagosPrestaciones, type TipoPrestacion } from './prestaciones'
 
 export type TipoEventoFlujo = 'ingreso' | 'gasto' | 'deuda' | 'tarjeta'
 
@@ -54,6 +55,9 @@ export interface EntradaFlujo {
   convertirCOP: (monto: number, moneda: string) => number
   dias?: number
   hoy?: Date
+  // Prima e intereses de cesantías (solo si el usuario confirmó que es
+  // empleo formal — ver lib/prestaciones.ts). Montos estimados.
+  prestaciones?: { salarioMensual: number; nombres: Record<TipoPrestacion, string> } | null
 }
 
 const MS_DIA = 24 * 60 * 60 * 1000
@@ -201,6 +205,12 @@ export function proyectarFlujo(e: EntradaFlujo): ResultadoFlujo {
     } else if (d.fecha_limite) {
       const lim = parseLocalDate(d.fecha_limite)
       if (lim >= hoy && lim <= fin) evs.push({ fecha: lim, nombre: d.nombre, monto: -restante, tipo: 'deuda' })
+    }
+  }
+
+  if (e.prestaciones) {
+    for (const p of pagosPrestaciones(e.prestaciones.salarioMensual, hoy, fin, e.transacciones)) {
+      evs.push({ fecha: parseLocalDate(p.fecha), nombre: e.prestaciones.nombres[p.tipo], monto: p.monto, tipo: 'ingreso' })
     }
   }
 

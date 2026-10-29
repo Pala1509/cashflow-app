@@ -10,6 +10,7 @@ import { ICONS } from './Cuentas'
 import { MoreHorizontal, Mail, Check } from 'lucide-react'
 import ProBanner from '../components/ProBanner'
 import FlujoCajaCard from '../components/FlujoCajaCard'
+import PrestacionesCard from '../components/PrestacionesCard'
 import { emailConfirmado, diasRestantesConfirmacion } from '../lib/emailConfirm'
 import { useIdioma } from '../lib/IdiomaContext'
 import { nombreCategoria } from '../lib/categoriaI18n'
@@ -212,6 +213,7 @@ export default function Inicio() {
           {/* Flujo de caja: cuánta plata tendrás en los próximos 30 días y
           si se ve un hueco. Un toque abre la pantalla completa. */}
           <FlujoCajaCard />
+          <PrestacionesCard />
 
           <div className="mb-2.5 mt-6 flex items-center justify-between">
             <div className="text-sm font-semibold">{t('inicio_movimientos_recientes')}</div>

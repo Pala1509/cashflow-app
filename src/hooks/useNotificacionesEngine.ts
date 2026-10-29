@@ -3,8 +3,9 @@ import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useFinanzas } from './useFinanzas'
 import { useTasasCambio } from './useTasasCambio'
-import { tienePermiso, programarGastosFijos, programarDeudas, revisarPresupuestos, revisarMetas, revisarGastosHormiga, programarAvisoFlujo } from '../lib/notificaciones'
+import { tienePermiso, programarGastosFijos, programarDeudas, revisarPresupuestos, revisarMetas, revisarGastosHormiga, programarAvisoFlujo, programarAvisoPrestacion } from '../lib/notificaciones'
 import { proyectarFlujo } from '../lib/flujoCaja'
+import { detectarSalarioMensual, proximoPagoPrestacion } from '../lib/prestaciones'
 import { t as traducir } from '../lib/i18n'
 import { actualizarWidget, actualizarWidgetRecientes, actualizarWidgetResumenMes } from '../lib/widget'
 
@@ -77,7 +78,7 @@ export function useNotificacionesEngine() {
 
       const { data: prefs } = await supabase
         .from('profiles')
-        .select('notif_gastos_fijos, notif_presupuestos, notif_metas, notif_deudas, notif_deudas_dias_antes, idioma')
+        .select('notif_gastos_fijos, notif_presupuestos, notif_metas, notif_deudas, notif_deudas_dias_antes, idioma, recibe_prestaciones')
         .eq('id', user!.id)
         .single()
       if (cancelado || !prefs) return
@@ -94,8 +95,23 @@ export function useNotificacionesEngine() {
       // Aviso de flujo de caja: comparte el interruptor de "Gastos fijos"
       // (son avisos de pagos que se vienen) para no sumar otro toggle.
       if (prefs.notif_gastos_fijos) {
-        const flujo = proyectarFlujo({ cuentas, ingresosFijos, gastosFijos, deudas, transacciones, convertirCOP, dias: 30 })
         const idioma = prefs.idioma === 'en' ? 'en' : 'es'
+        const salario = prefs.recibe_prestaciones ? detectarSalarioMensual(ingresosFijos, categorias) : null
+        const flujo = proyectarFlujo({
+          cuentas, ingresosFijos, gastosFijos, deudas, transacciones, convertirCOP, dias: 30,
+          prestaciones: salario
+            ? { salarioMensual: salario, nombres: { prima_junio: traducir('prest_prima_junio', idioma), prima_diciembre: traducir('prest_prima_diciembre', idioma), intereses_cesantias: traducir('prest_intereses', idioma) } }
+            : null,
+        })
+        // Prima / intereses de cesantías: mismo interruptor de "Gastos fijos"
+        // (avisos de plata que se viene), sin toggle nuevo.
+        await programarAvisoPrestacion(salario ? proximoPagoPrestacion(salario, new Date(), transacciones) : null, {
+          titulo: (nombre) => traducir('prest_notif_titulo', idioma, { nombre }),
+          cuerpo: (monto, fecha) => traducir('prest_notif_cuerpo', idioma, { monto, fecha }),
+          nombre: (p) => idioma === 'en'
+            ? (p.tipo === 'intereses_cesantias' ? 'severance interest' : 'prima')
+            : (p.tipo === 'intereses_cesantias' ? 'pago de intereses de cesantías' : 'prima'),
+        })
         await programarAvisoFlujo(flujo.hueco, {
           titulo: traducir('flujo_notif_titulo', idioma),
           cuerpo: (fecha, monto) => traducir('flujo_notif_cuerpo', idioma, { fecha, monto }),
