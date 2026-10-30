@@ -63,10 +63,25 @@ private func procesar(frase: String, tipo: String?, metodo: String?) async throw
     if let metodo, !metodo.trimmingCharacters(in: .whitespaces).isEmpty { body["metodo"] = metodo }
     req.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-    let data: Data
-    do {
-        (data, _) = try await URLSession.shared.data(for: req)
-    } catch {
+    // Sesión nueva en cada llamada: con URLSession.shared, la segunda
+    // solicitud (después de "¿Cómo pagaste?") reutilizaba una conexión
+    // HTTP/3 que iOS ya había cerrado y fallaba sin llegar al servidor.
+    let config = URLSessionConfiguration.ephemeral
+    config.timeoutIntervalForRequest = 15
+    config.waitsForConnectivity = false
+    let sesion = URLSession(configuration: config)
+    defer { sesion.finishTasksAndInvalidate() }
+
+    var data: Data?
+    for intento in 0..<2 {
+        do {
+            (data, _) = try await sesion.data(for: req)
+            break
+        } catch {
+            if intento == 0 { try? await Task.sleep(nanoseconds: 400_000_000) }
+        }
+    }
+    guard let data else {
         throw ErrorSiri(texto: "No tengo conexión para anotarlo ahora. Intenta de nuevo en un momento.")
     }
     let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
@@ -98,6 +113,24 @@ private func mostrarNotificacion(titulo: String, cuerpo: String) async {
     try? await UNUserNotificationCenter.current().add(solicitud)
 }
 
+
+/// Envía el movimiento y, si el servidor necesita saber la cuenta, le
+/// pregunta al usuario ahí mismo (sin reiniciar el intent) hasta 2 veces.
+@available(iOS 16.0, *)
+private func anotar(frase: String, tipo: String?, metodo: String?,
+                    preguntar: (String) async throws -> String?) async throws {
+    var actual = metodo
+    for _ in 0..<3 {
+        switch try await procesar(frase: frase, tipo: tipo, metodo: actual) {
+        case .listo:
+            return
+        case .preguntarCuenta(let pregunta):
+            actual = try await preguntar(pregunta)
+        }
+    }
+    throw ErrorSiri(texto: "No logré saber la cuenta. Ábrelo en CashFlow para terminar de anotarlo.")
+}
+
 // MARK: - Intents
 
 @available(iOS 16.0, *)
@@ -121,10 +154,11 @@ struct AnotarGastoIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        switch try await procesar(frase: frase, tipo: "egreso", metodo: metodo) {
-        case .listo: return .result()
-        case .preguntarCuenta(let pregunta): throw $metodo.needsValueError(IntentDialog("\(pregunta)"))
+        try await anotar(frase: frase, tipo: "egreso", metodo: metodo) { pregunta in
+            let respuesta: String? = try await $metodo.requestValue(IntentDialog("\(pregunta)"))
+            return respuesta
         }
+        return .result()
     }
 }
 
@@ -149,10 +183,11 @@ struct AnotarIngresoIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        switch try await procesar(frase: frase, tipo: "ingreso", metodo: metodo) {
-        case .listo: return .result()
-        case .preguntarCuenta(let pregunta): throw $metodo.needsValueError(IntentDialog("\(pregunta)"))
+        try await anotar(frase: frase, tipo: "ingreso", metodo: metodo) { pregunta in
+            let respuesta: String? = try await $metodo.requestValue(IntentDialog("\(pregunta)"))
+            return respuesta
         }
+        return .result()
     }
 }
 
@@ -177,10 +212,11 @@ struct AnotarMovimientoIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        switch try await procesar(frase: frase, tipo: nil, metodo: metodo) {
-        case .listo: return .result()
-        case .preguntarCuenta(let pregunta): throw $metodo.needsValueError(IntentDialog("\(pregunta)"))
+        try await anotar(frase: frase, tipo: nil, metodo: metodo) { pregunta in
+            let respuesta: String? = try await $metodo.requestValue(IntentDialog("\(pregunta)"))
+            return respuesta
         }
+        return .result()
     }
 }
 
