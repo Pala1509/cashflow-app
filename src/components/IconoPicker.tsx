@@ -10,7 +10,7 @@ export const ICONOS_ELEGIBLES = Object.keys(ICONS).filter((k) => !OCULTOS.has(k)
 
 export default function IconoPicker({ valor, onChange, color = 'var(--lime)' }: { valor: string | null; onChange: (icono: string) => void; color?: string }) {
   return (
-    <div className="grid grid-cols-6 gap-2 overflow-y-auto rounded-2xl p-2" style={{ maxHeight: 236, background: 'var(--card)' }} role="radiogroup" aria-label="Ícono">
+    <div className="cf-sin-barra grid grid-cols-6 gap-2 overflow-y-auto rounded-2xl p-2" style={{ maxHeight: 236, background: 'var(--card)' }} role="radiogroup" aria-label="Ícono">
       {ICONOS_ELEGIBLES.map((k) => {
         const Icon = ICONS[k]
         const sel = valor === k

@@ -79,6 +79,9 @@ body.modo-rapido{ background:transparent !important; }
 ::-webkit-scrollbar{width:6px; height:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
+/* Scroll sin barra visible (onboarding y registro). */
+.cf-sin-barra{scrollbar-width:none; -ms-overflow-style:none;}
+.cf-sin-barra::-webkit-scrollbar{display:none; width:0; height:0;}
 input, button{font-family:inherit;}
 
 /* Espacio de scroll para que el contenido nunca quede tapado por la
