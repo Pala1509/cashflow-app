@@ -6,6 +6,7 @@ import {
   Tag, DollarSign, Percent, CalendarClock, AlertTriangle, Search, Globe2, Lock,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import IconoPicker from '../components/IconoPicker'
 import { useAuth } from '../lib/AuthContext'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { useProDuo } from '../hooks/useProDuo'
@@ -153,6 +154,8 @@ export default function CuentaNueva() {
   const parejaActiva = proDuoRow?.estado === 'activo' ? proDuoRow : null
   const parejaId = parejaActiva ? (parejaActiva.inviter_id === user?.id ? parejaActiva.invitado_id : parejaActiva.inviter_id) : null
   const [colorElegido, setColorElegido] = useState<string | null>(null)
+  // Ícono propio (cuentas y deudas) para que no salgan todas iguales.
+  const [iconoElegido, setIconoElegido] = useState<string | null>(null)
   const [banco, setBanco] = useState<string | null>(null)
   const [diseno, setDiseno] = useState<DisenoTarjeta>('clasico')
   const [showBancoPicker, setShowBancoPicker] = useState(false)
@@ -178,6 +181,7 @@ export default function CuentaNueva() {
       setSaldo(String(cuenta.tipo === 'tarjeta_credito' ? cuenta.cupo_total ?? 0 : cuenta.saldo))
       setFour(cuenta.four_x_mil)
       setColorElegido(cuenta.color)
+      setIconoElegido(cuenta.icono ?? null)
       setBanco(cuenta.banco)
       setMoneda((cuenta.moneda as 'COP' | 'USD' | 'EUR' | 'MXN') ?? 'COP')
       setDiseno((cuenta.diseno_tarjeta as DisenoTarjeta) ?? 'clasico')
@@ -198,6 +202,7 @@ export default function CuentaNueva() {
     if (deuda) {
       setTipo(deuda.tipo)
       setSubtipo(deuda.subtipo)
+      setIconoElegido(deuda.icono ?? null)
       setNombre(deuda.nombre)
       setCapital(String(deuda.capital))
       setTasa(String(deuda.tasa_interes))
@@ -369,7 +374,7 @@ export default function CuentaNueva() {
       const tasaEaNum = esAhorro ? Number(tasaEa || 0) : 0
       if (isEdit) {
         const r = await supabase.from('cuentas').update({
-          nombre, saldo: Number(saldo || 0), four_x_mil: (tipo === 'efectivo' || tipo === 'monedero') ? false : four, es_ahorro: esAhorro, color: colorElegido ?? undefined,
+          nombre, saldo: Number(saldo || 0), four_x_mil: (tipo === 'efectivo' || tipo === 'monedero') ? false : four, es_ahorro: esAhorro, color: colorElegido ?? undefined, icono: iconoElegido ?? undefined,
           banco: (tipo && REQUIERE_BANCO.has(tipo)) ? banco : null, diseno_tarjeta: (tipo && REQUIERE_BANCO.has(tipo)) ? diseno : null,
           compartida_con_id: compartir ? parejaId : null, tasa_ea: tasaEaNum, moneda,
         }).eq('id', id)
@@ -379,7 +384,7 @@ export default function CuentaNueva() {
         const color = colorElegido ?? (tipo === 'efectivo' ? 'lime' : tipo === 'billetera_digital' ? 'lavender' : tipo === 'monedero' ? 'teal' : tipo === 'tarjeta_debito' ? 'blue' : 'yellow')
         const r = await supabase.from('cuentas').insert({
           user_id: user.id, tipo, subtipo, nombre: nombre || 'Nueva cuenta',
-          saldo: Number(saldo || 0), icono, color, four_x_mil: (tipo === 'efectivo' || tipo === 'monedero') ? false : four, es_ahorro: esAhorro, activa: true,
+          saldo: Number(saldo || 0), icono: iconoElegido ?? icono, color, four_x_mil: (tipo === 'efectivo' || tipo === 'monedero') ? false : four, es_ahorro: esAhorro, activa: true,
           banco: (tipo && REQUIERE_BANCO.has(tipo)) ? banco : null, diseno_tarjeta: (tipo && REQUIERE_BANCO.has(tipo)) ? diseno : null,
           compartida_con_id: compartir ? parejaId : null, tasa_ea: tasaEaNum, moneda,
         })
@@ -426,7 +431,7 @@ export default function CuentaNueva() {
       const cuotaNum = cuotaMensual ? Number(cuotaMensual) : null
       if (isEdit) {
         const r = await supabase.from('deudas_creditos').update({
-          nombre, capital: capitalNum, tasa_interes: tasaNum, periodo_interes: periodo,
+          nombre, capital: capitalNum, tasa_interes: tasaNum, periodo_interes: periodo, icono: iconoElegido,
           plazo_meses: plazoNum, cuota_mensual: cuotaNum, gasto_fijo_id: gastoFijoVinculado,
           compartida_con_id: compartir ? parejaId : null, fecha_limite: fechaLimite || null, notif_dias_antes: (fechaLimite && notifActivo) ? Number(notifDiasAntes || 1) : null,
         }).eq('id', id)
@@ -461,7 +466,7 @@ export default function CuentaNueva() {
         // lo suma para siempre junto con los pagos reales que vengan.
         const r = await supabase.from('deudas_creditos').insert({
           user_id: user.id, tipo, subtipo, nombre: nombre || (tipo === 'deuda' ? 'Nueva deuda' : 'Nuevo crédito'),
-          capital: capitalNum,
+          capital: capitalNum, icono: iconoElegido,
           tipo_interes: interes ?? 'sin_interes', tasa_interes: tasaNum, periodo_interes: periodo,
           plazo_meses: plazoNum, cuota_mensual: cuotaNum, gasto_fijo_id: tipo === 'deuda' ? gastoFijoVinculado : null,
           fecha_inicio: todayLocal(), estado: 'activa', fecha_limite: fechaLimite || null, notif_dias_antes: (fechaLimite && notifActivo) ? Number(notifDiasAntes || 1) : null,
@@ -1018,6 +1023,19 @@ export default function CuentaNueva() {
                   })}
                 </div>
                 <div className="mb-2 text-[10px]" style={{ color: 'var(--text-3)' }}>{t('cn_color_nota')}</div>
+              </>
+            )}
+
+            {tipo && tipo !== 'tarjeta_credito' && tipo !== 'cdt' && (
+              <>
+                <FieldLabel>{t('bn_icono')}</FieldLabel>
+                <div className="mb-3">
+                  <IconoPicker
+                    valor={iconoElegido ?? (TYPE_OPTS.find((o) => o.id === tipo)?.icon ?? null)}
+                    color={(COLORS[colorElegido ?? TYPE_OPTS.find((o) => o.id === tipo)?.color ?? 'lavender'] ?? COLORS.lavender).fg}
+                    onChange={setIconoElegido}
+                  />
+                </div>
               </>
             )}
 

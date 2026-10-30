@@ -301,7 +301,7 @@ export default function Deudas() {
           return (
             <div key={d.id} className="mb-2.5 rounded-2xl p-3.5" style={{ background: 'var(--card)' }}>
               <button onClick={() => setMovExpandidaId(expandida ? null : d.id)} className="flex w-full items-center gap-3 text-left">
-              <IconCircle icono="scale" color="coral" />
+              <IconCircle icono={d.icono ?? 'scale'} color="coral" />
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium">{d.nombre}</div>
                 <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>
@@ -339,7 +339,7 @@ export default function Deudas() {
           return (
             <div key={c.id} className="mb-2.5 rounded-2xl p-3.5" style={{ background: 'var(--card)' }}>
               <button onClick={() => setMovExpandidaId(expandida ? null : c.id)} className="flex w-full items-center gap-3 text-left">
-              <IconCircle icono="arrow-back-up" color="yellow" />
+              <IconCircle icono={c.icono ?? 'arrow-back-up'} color="yellow" />
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium">{c.nombre}</div>
                 <div className="text-[10px]" style={{ color: 'var(--text-3)' }}>{t('deudas_te_deben_label')}</div>

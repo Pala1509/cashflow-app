@@ -614,6 +614,7 @@ export const TRADUCCIONES = {
   bn_quieres_aviso: { es: '¿Quieres que te avisemos?', en: 'Want us to notify you?' },
   bn_aviso_nota: { es: 'Aparte del interruptor general de Perfil — esto es solo para este gasto en particular.', en: "Separate from the general switch in Profile — this is just for this particular expense." },
   bn_cuantos_dias_antes: { es: '¿Cuántos días antes?', en: 'How many days before?' },
+  bn_icono: { es: 'Ícono', en: 'Icon' },
   bn_categoria: { es: 'Categoría', en: 'Category' },
   bn_personalizadas: { es: 'Personalizadas', en: 'Custom' },
   bn_guardando: { es: 'Guardando…', en: 'Saving…' },

@@ -3,7 +3,7 @@ import { Plus, MoreHorizontal } from 'lucide-react'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { useAuth } from '../lib/AuthContext'
 import Avatar from '../components/Avatar'
-import { ICONS } from './Cuentas'
+import { ICONS, COLORS } from './Cuentas'
 import { parseLocalDate } from '../lib/date'
 import { FREE_LIMITS } from '../lib/pro'
 import { useIdioma } from '../lib/IdiomaContext'
@@ -55,6 +55,12 @@ export default function Balance() {
     ingresosFijos, gastosFijos, metas, categorias, transacciones, loading, esPro,
     totalIngresosFijos, totalGastosFijos, totalAporteMetas, disponibleLibre,
   } = useFinanzas()
+  // El ícono de cada fijo toma el color de su categoría, así no salen todos
+  // del mismo color (verde los ingresos, rojo los gastos) y se distinguen.
+  const colorDeCategoria = (categoriaId: string | null, porDefecto: string) => {
+    const col = COLORS[categorias.find((c) => c.id === categoriaId)?.color ?? ''] ?? COLORS[porDefecto]
+    return { background: col.dim, color: col.fg }
+  }
 
   const total = totalIngresosFijos || 1
   const gasPct = Math.min(Math.max(totalGastosFijos / total, 0), 1)
@@ -138,7 +144,7 @@ export default function Balance() {
         const atrasado = !recibido && !recibidoParcial && ultimoCobro !== null
         return (
           <button key={i.id} onClick={() => navigate(`/balance/${i.id}/editar`)} className="mb-2.5 flex w-full items-center gap-3 rounded-2xl p-3.5 text-left" style={{ background: 'var(--card)' }}>
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--lime-dim)', color: 'var(--lime)' }}>
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={colorDeCategoria(i.categoria_id, 'lime')}>
               <Icon size={17} />
             </div>
             <div className="min-w-0 flex-1">
@@ -201,7 +207,7 @@ export default function Balance() {
         const vencido = !pagado && !pagadoParcial && ultimoPago !== null
         return (
           <button key={g.id} onClick={() => navigate(`/balance/${g.id}/editar`)} className="mb-2.5 flex w-full items-center gap-3 rounded-2xl p-3.5 text-left" style={{ background: 'var(--card)' }}>
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--coral-dim)', color: 'var(--coral)' }}>
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={colorDeCategoria(g.categoria_id, 'coral')}>
               <Icon size={17} />
             </div>
             <div className="min-w-0 flex-1">

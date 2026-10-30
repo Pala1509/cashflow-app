@@ -8,6 +8,7 @@ import { useFinanzas } from '../hooks/useFinanzas'
 import { useProDuo } from '../hooks/useProDuo'
 import { FREE_LIMITS } from '../lib/pro'
 import ProPaywallSheet from '../components/ProPaywallSheet'
+import IconoPicker from '../components/IconoPicker'
 import { sortCategorias } from '../lib/categorias'
 import { ICONS, COLORS, GRUPOS } from './Cuentas'
 import type { FrecuenciaFija } from '../lib/database.types'
@@ -74,6 +75,10 @@ export default function BalanceNuevo() {
   const [monto, setMonto] = useState('')
   const [frecuencia, setFrecuencia] = useState<FrecuenciaFija>('mensual')
   const [categoriaId, setCategoriaId] = useState<string | null>(null)
+  // Ícono propio: por defecto toma el de la categoría; si la persona escoge
+  // uno a mano, ya no se pisa al cambiar de categoría.
+  const [icono, setIcono] = useState<string | null>(null)
+  const [iconoManual, setIconoManual] = useState(false)
   const [diaMes, setDiaMes] = useState('1')
   const [notifActivo, setNotifActivo] = useState(false)
   const [notifDiasAntes, setNotifDiasAntes] = useState('2')
@@ -95,6 +100,8 @@ export default function BalanceNuevo() {
       setMonto(String(registroExistente.monto))
       setFrecuencia(registroExistente.frecuencia)
       setCategoriaId(registroExistente.categoria_id)
+      setIcono(registroExistente.icono ?? null)
+      setIconoManual(Boolean(registroExistente.icono))
       setDiaMes(String(registroExistente.dia_mes))
       if ('notif_dias_antes' in registroExistente) {
         setNotifActivo(registroExistente.notif_dias_antes !== null)
@@ -118,19 +125,20 @@ export default function BalanceNuevo() {
     let error = null
 
     if (tipo === 'ingreso_fijo') {
-      const payload = { nombre, monto: Number(monto || 0), frecuencia, categoria_id: categoriaId, dia_mes: Number(diaMes || 1) }
+      const payload = { nombre, monto: Number(monto || 0), frecuencia, categoria_id: categoriaId, dia_mes: Number(diaMes || 1), icono: icono ?? 'cash' }
       const r = isEdit
         ? await supabase.from('ingresos_fijos').update(payload).eq('id', id)
-        : await supabase.from('ingresos_fijos').insert({ ...payload, user_id: user.id, icono: 'cash', activo: true })
+        : await supabase.from('ingresos_fijos').insert({ ...payload, user_id: user.id, activo: true })
       error = r.error
     } else if (tipo === 'gasto_fijo') {
       const payload = {
         nombre, monto: Number(monto || 0), frecuencia, categoria_id: categoriaId, dia_mes: Number(diaMes || 1),
         notif_dias_antes: notifActivo ? Number(notifDiasAntes || 2) : null,
+        icono: icono ?? 'home',
       }
       const r = isEdit
         ? await supabase.from('gastos_fijos').update(payload).eq('id', id)
-        : await supabase.from('gastos_fijos').insert({ ...payload, user_id: user.id, icono: 'home', activo: true })
+        : await supabase.from('gastos_fijos').insert({ ...payload, user_id: user.id, activo: true })
       error = r.error
     } else {
       const payload = { nombre, monto_objetivo: Number(monto || 0), aporte_mensual: Number(aporteMensual || 0), compartida_con_id: compartir ? parejaId : null }
@@ -279,7 +287,7 @@ export default function BalanceNuevo() {
                           return (
                             <button
                               key={c.id}
-                              onClick={() => setCategoriaId(c.id)}
+                              onClick={() => { setCategoriaId(c.id); if (!iconoManual && c.icono) setIcono(c.icono) }}
                               className="flex flex-col items-center gap-1.5 text-center text-[9.5px]"
                               style={{ color: sel ? accent : 'var(--text-2)' }}
                             >
@@ -310,7 +318,7 @@ export default function BalanceNuevo() {
                           return (
                             <button
                               key={c.id}
-                              onClick={() => setCategoriaId(c.id)}
+                              onClick={() => { setCategoriaId(c.id); if (!iconoManual && c.icono) setIcono(c.icono) }}
                               className="flex flex-col items-center gap-1.5 text-center text-[9.5px]"
                               style={{ color: sel ? accent : 'var(--text-2)' }}
                             >
@@ -325,6 +333,11 @@ export default function BalanceNuevo() {
                     </div>
                   )
                 })()}
+
+                <FieldLabel>{t('bn_icono')}</FieldLabel>
+                <div className="mb-4">
+                  <IconoPicker valor={icono} color={accent} onChange={(k) => { setIcono(k); setIconoManual(true) }} />
+                </div>
               </>
             )}
 

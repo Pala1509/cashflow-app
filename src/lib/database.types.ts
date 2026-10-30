@@ -94,6 +94,7 @@ export interface DeudaCredito {
   id: string
   user_id: string
   tipo: TipoDeudaCredito
+  icono?: string | null
   subtipo: string | null
   nombre: string
   entidad: string | null

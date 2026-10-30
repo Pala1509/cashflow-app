@@ -50,12 +50,12 @@ const BILLETERAS = new Set(['Nequi', 'Daviplata', 'Nu', 'Lulo Bank', 'RappiPay',
 
 const FIJOS_BASE: FijoForm[] = [
   { nombre: 'Arriendo', icono: 'home', marcado: false, monto: '', dia: '1' },
-  { nombre: 'Servicios', icono: 'water', marcado: false, monto: '', dia: '15' },
+  { nombre: 'Servicios', icono: 'zap', marcado: false, monto: '', dia: '15' },
   { nombre: 'Celular', icono: 'device-mobile', marcado: false, monto: '', dia: '20' },
-  { nombre: 'Internet', icono: 'device-desktop', marcado: false, monto: '', dia: '10' },
-  { nombre: 'Gimnasio', icono: 'heart', marcado: false, monto: '', dia: '5' },
-  { nombre: 'Suscripciones', icono: 'subscription', marcado: false, monto: '', dia: '12' },
-  { nombre: 'Transporte', icono: 'car', marcado: false, monto: '', dia: '1' },
+  { nombre: 'Internet', icono: 'wifi', marcado: false, monto: '', dia: '10' },
+  { nombre: 'Gimnasio', icono: 'dumbbell', marcado: false, monto: '', dia: '5' },
+  { nombre: 'Suscripciones', icono: 'tv', marcado: false, monto: '', dia: '12' },
+  { nombre: 'Transporte', icono: 'bus', marcado: false, monto: '', dia: '1' },
   { nombre: 'Cuota moto/carro', icono: 'bike', marcado: false, monto: '', dia: '5' },
 ]
 
@@ -68,7 +68,7 @@ const num = (s: string) => Number(soloDigitos(s) || 0)
 const fmt = (n: number) => (n < 0 ? '−$' : '$') + Math.round(Math.abs(n)).toLocaleString('es-CO')
 const conPuntos = (s: string) => { const d = soloDigitos(s); return d ? Number(d).toLocaleString('es-CO') : '' }
 const tipoDeBanco = (banco: string): TipoCuenta => (BILLETERAS.has(banco) ? 'billetera_digital' : 'cuenta_bancaria')
-const ICONO_TIPO: Record<TipoCuenta, string> = { efectivo: 'cash', billetera_digital: 'device-mobile', cuenta_bancaria: 'building-bank', monedero: 'wallet' }
+const ICONO_TIPO: Record<TipoCuenta, string> = { efectivo: 'cash', billetera_digital: 'device-mobile', cuenta_bancaria: 'building-bank', monedero: 'piggy-bank' }
 const COLOR_TIPO: Record<TipoCuenta, string> = { efectivo: 'lime', billetera_digital: 'lavender', cuenta_bancaria: 'yellow', monedero: 'teal' }
 const ETIQUETA_TIPO: Record<TipoCuenta, string> = { efectivo: 'Plata física', billetera_digital: 'Billetera digital', cuenta_bancaria: 'Cuenta bancaria', monedero: 'Alcancía o bolsillo' }
 const v = (c: string) => `var(--${c})`
