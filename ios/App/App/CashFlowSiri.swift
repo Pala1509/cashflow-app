@@ -161,7 +161,7 @@ struct AnotarGastoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…", optionsProvider: CuentasSiri())
+    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…")
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -190,7 +190,7 @@ struct AnotarIngresoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Cuenta", description: "A qué cuenta te llegó: Nequi, Bancolombia, efectivo…", optionsProvider: CuentasSiri())
+    @Parameter(title: "Cuenta", description: "A qué cuenta te llegó: Nequi, Bancolombia, efectivo…")
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -219,7 +219,7 @@ struct AnotarMovimientoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…", optionsProvider: CuentasSiri())
+    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…")
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {
