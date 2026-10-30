@@ -131,6 +131,21 @@ private func anotar(frase: String, tipo: String?, metodo: String?,
     throw ErrorSiri(texto: "No logré saber la cuenta. Ábrelo en CashFlow para terminar de anotarlo.")
 }
 
+/// Nombres de las cuentas del usuario (la app los guarda al abrir, ver
+/// guardarCuentasSiri en src/lib/siri.ts). Se ofrecen como opciones al
+/// preguntar "¿Cómo pagaste?" para que Siri reconozca bien "Nequi",
+/// "Nu Bank"… en vez de escribir lo que le suene ("Nizcy").
+@available(iOS 16.0, *)
+struct CuentasSiri: DynamicOptionsProvider {
+    func results() async throws -> [String] {
+        guard let texto = UserDefaults.standard.string(forKey: "CapacitorStorage.siri_cuentas"),
+              let datos = texto.data(using: .utf8),
+              let nombres = try? JSONSerialization.jsonObject(with: datos) as? [String]
+        else { return [] }
+        return nombres
+    }
+}
+
 // MARK: - Intents
 
 @available(iOS 16.0, *)
@@ -146,7 +161,7 @@ struct AnotarGastoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…")
+    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…", optionsProvider: CuentasSiri())
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -175,7 +190,7 @@ struct AnotarIngresoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Cuenta", description: "A qué cuenta te llegó: Nequi, Bancolombia, efectivo…")
+    @Parameter(title: "Cuenta", description: "A qué cuenta te llegó: Nequi, Bancolombia, efectivo…", optionsProvider: CuentasSiri())
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -204,7 +219,7 @@ struct AnotarMovimientoIntent: AppIntent {
     )
     var frase: String
 
-    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…")
+    @Parameter(title: "Método de pago", description: "Efectivo, Nequi, Bancolombia, la tarjeta…", optionsProvider: CuentasSiri())
     var metodo: String?
 
     static var parameterSummary: some ParameterSummary {

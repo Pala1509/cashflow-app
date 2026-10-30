@@ -20,10 +20,14 @@
 //   - Si no, y `preguntarCuenta` es true (intents nuevos), se devuelve
 //     { necesitaCuenta: true, pregunta } para que Siri pregunte.
 //   - Si no (builds viejos), se usa la cuenta más usada.
+// Los nombres de bancos se comparan con alias (alias.ts): "Neki"/"Nizcy" =
+// Nequi, "Nubank"/"New Bank" = Nu, etc., y si la respuesta es corta y nada
+// coincide, se elige la cuenta que más se parezca al oído.
 // Con prueba=true interpreta pero NO guarda (para testear el parser).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { normalizar, parsearFrase } from './parser.ts'
+import { canonizar, masParecida, variantesDe } from './alias.ts'
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false },
@@ -102,6 +106,22 @@ interface Categoria { id: string; nombre: string; tipo: string }
 
 const PALABRAS_VACIAS = new Set(['con', 'la', 'el', 'mi', 'de', 'del', 'en', 'tarjeta', 'cuenta', 'pague', 'pago', 'fue', 'por', 'una', 'uno', 'un', 'lo', 'desde', 'banco'])
 
+// Nombre y banco de la cuenta, ya normalizados y con alias aplicados.
+const nombreDe = (c: Cuenta) => canonizar(c.nombre)
+const bancoDe = (c: Cuenta) => (c.banco ? canonizar(c.banco) : '')
+
+// ¿El texto (ya canonizado) menciona esta cuenta por nombre o banco?
+function mencionada(n: string, c: Cuenta): boolean {
+  const nombre = nombreDe(c)
+  const banco = bancoDe(c)
+  if (contienePalabra(n, nombre)) return true
+  if (banco && contienePalabra(n, banco)) return true
+  // "nubank" dicho pegado vs "Nu Bank" guardado separado (o al revés)
+  const pegado = n.replace(/[^a-z0-9]/g, '')
+  const nombrePegado = nombre.replace(/[^a-z0-9]/g, '')
+  return nombrePegado.length >= 5 && pegado.includes(nombrePegado)
+}
+
 function filtrarPorTipo(n: string, cuentas: Cuenta[]): Cuenta[] {
   if (/\b(efectivo|cash|billete|billetes|en mano)\b/.test(n)) return cuentas.filter((c) => c.tipo === 'efectivo')
   if (/\bcredito\b/.test(n)) return cuentas.filter((c) => c.tipo === 'tarjeta_credito')
@@ -114,11 +134,11 @@ function filtrarPorTipo(n: string, cuentas: Cuenta[]): Cuenta[] {
 // Encuentra la cuenta que el usuario nombró ("bancolombia", "la tarjeta nu",
 // "efectivo", "con la de crédito"). Devuelve null si no hay una sola clara.
 function resolverCuenta(texto: string, cuentas: Cuenta[]): Cuenta | null {
-  const n = normalizar(texto)
-  const porNombre = cuentas.filter((c) => contienePalabra(n, normalizar(c.nombre)) || (c.banco && contienePalabra(n, normalizar(c.banco))))
+  const n = canonizar(texto)
+  const porNombre = cuentas.filter((c) => mencionada(n, c))
   if (porNombre.length === 1) return porNombre[0]
   if (porNombre.length > 1) {
-    const exactas = porNombre.filter((c) => contienePalabra(n, normalizar(c.nombre)))
+    const exactas = porNombre.filter((c) => contienePalabra(n, nombreDe(c)))
     if (exactas.length === 1) return exactas[0]
     const porTipo = filtrarPorTipo(n, porNombre)
     if (porTipo.length === 1) return porTipo[0]
@@ -126,6 +146,11 @@ function resolverCuenta(texto: string, cuentas: Cuenta[]): Cuenta | null {
     // → casi siempre se refiere a la cuenta, no a la tarjeta.
     const noCredito = porNombre.filter((c) => c.tipo !== 'tarjeta_credito')
     if (!/\b(tarjeta|credito)\b/.test(n) && noCredito.length === 1) return noCredito[0]
+    // "Nequi" con una cuenta Nequi y una tarjeta Nequi → la que no es tarjeta.
+    if (!/\btarjeta\b/.test(n)) {
+      const noTarjeta = porNombre.filter((c) => !c.tipo.startsWith('tarjeta'))
+      if (noTarjeta.length === 1) return noTarjeta[0]
+    }
     return null
   }
   const porTipo = filtrarPorTipo(n, cuentas)
@@ -133,16 +158,19 @@ function resolverCuenta(texto: string, cuentas: Cuenta[]): Cuenta | null {
   const tokens = n.split(' ').filter((w) => w.length >= 3 && !PALABRAS_VACIAS.has(w))
   const universo = porTipo.length > 1 ? porTipo : cuentas
   const parcial = universo.filter((c) => {
-    const palabras = `${normalizar(c.nombre)} ${normalizar(c.banco ?? '')}`.split(' ')
+    const palabras = `${nombreDe(c)} ${bancoDe(c)}`.split(' ')
     return tokens.some((w) => palabras.includes(w))
   })
   if (parcial.length === 1) return parcial[0]
+  // Respuesta corta que el dictado escribió raro ("nisky", "lulu banc"):
+  // la cuenta que más se parezca al oído.
+  if (n.split(' ').length <= 3) return masParecida(n, universo)
   return null
 }
 
 // Cuenta mencionada dentro de la frase misma ("…con Nequi", "en efectivo").
 function resolverFrase(norm: string, efectivo: boolean, cuentas: Cuenta[]): Cuenta | null {
-  const nombradas = cuentas.filter((c) => contienePalabra(norm, normalizar(c.nombre)) || (c.banco && contienePalabra(norm, normalizar(c.banco))))
+  const nombradas = cuentas.filter((c) => mencionada(norm, c))
   if (nombradas.length) return resolverCuenta(norm, nombradas) ?? nombradas.sort((a, b) => b.nombre.length - a.nombre.length)[0]
   if (efectivo) return cuentas.find((c) => c.tipo === 'efectivo') ?? null
   if (/\btarjeta de credito\b|\bcon la tarjeta\b|\bcon tarjeta\b/.test(norm)) {
@@ -155,8 +183,8 @@ function resolverFrase(norm: string, efectivo: boolean, cuentas: Cuenta[]): Cuen
 // Para volver a preguntar: si la respuesta apuntaba a varias cuentas
 // ("la de crédito" con 2 tarjetas), lista solo esas.
 function candidatasDe(texto: string, cuentas: Cuenta[]): Cuenta[] {
-  const n = normalizar(texto)
-  const porNombre = cuentas.filter((c) => contienePalabra(n, normalizar(c.nombre)) || (c.banco && contienePalabra(n, normalizar(c.banco))))
+  const n = canonizar(texto)
+  const porNombre = cuentas.filter((c) => mencionada(n, c))
   if (porNombre.length > 1) return porNombre
   const porTipo = filtrarPorTipo(n, cuentas)
   if (porTipo.length > 1) return porTipo
@@ -164,7 +192,7 @@ function candidatasDe(texto: string, cuentas: Cuenta[]): Cuenta[] {
 }
 
 function listarCuentas(cuentas: Cuenta[]): string {
-  const nombres = cuentas.slice(0, 6).map((c) => c.nombre)
+  const nombres = cuentas.slice(0, 6).map((c) => c.nombre.trim())
   if (nombres.length <= 1) return nombres.join('')
   return `${nombres.slice(0, -1).join(', ')} o ${nombres[nombres.length - 1]}`
 }
@@ -210,7 +238,8 @@ Deno.serve(async (req) => {
   const categorias = (categoriasData ?? []) as Categoria[]
   if (cuentas.length === 0) return json({ ok: false, mensaje: 'Primero crea una cuenta en CashFlow para poder anotar movimientos.' })
 
-  const p = parsearFrase(frase, cuentas.flatMap((c) => [c.nombre, c.banco ?? '']).filter(Boolean))
+  const nombresCuenta = cuentas.flatMap((c) => [c.nombre, c.banco ?? '']).filter(Boolean)
+  const p = parsearFrase(frase, [...nombresCuenta, ...variantesDe(nombresCuenta)])
   // Si el usuario activó Siri con "agrega un gasto…" / "agrega un ingreso…",
   // el intent manda el tipo explícito y ese manda sobre lo que se infiera.
   if (body.tipo === 'egreso' || body.tipo === 'ingreso') p.tipo = body.tipo
@@ -220,7 +249,7 @@ Deno.serve(async (req) => {
 
   // ---- Cuenta: nombrada en la frase > respuesta a "¿cómo pagaste?" > preguntar > la más usada ----
   const usables = cuentas.filter((c) => p.tipo === 'egreso' || c.tipo !== 'tarjeta_credito')
-  let cuenta: Cuenta | undefined = resolverFrase(norm, p.efectivo, usables) ?? undefined
+  let cuenta: Cuenta | undefined = resolverFrase(canonizar(frase), p.efectivo, usables) ?? undefined
   if (!cuenta && body.metodo) {
     cuenta = resolverCuenta(body.metodo, usables) ?? undefined
     if (!cuenta) {
@@ -306,13 +335,14 @@ Deno.serve(async (req) => {
 
   const partes = [descripcion ?? (p.tipo === 'ingreso' ? 'Ingreso' : 'Gasto')]
   if (lugar) partes.push(`en ${lugar}`)
+  const nombreCuenta = cuenta.nombre.trim()
   let mensaje = `${p.tipo === 'ingreso' ? 'Listo, anoté el ingreso' : 'Listo'}: ${partes.join(' ')}, ${formatoMonto(monto, cuenta.moneda)}`
   if (categoria) mensaje += `, en ${categoria.nombre}`
-  mensaje += p.tipo === 'ingreso' ? `, a ${cuenta.nombre}.` : `, desde ${cuenta.nombre}.`
+  mensaje += p.tipo === 'ingreso' ? `, a ${nombreCuenta}.` : `, desde ${nombreCuenta}.`
   if (p.ayer) mensaje = mensaje.replace(/\.$/, ', con fecha de ayer.')
 
   if (body.prueba) {
-    return json({ ok: true, prueba: true, mensaje, interpretado: { ...p, cuenta: cuenta.nombre, categoria: categoria?.nombre ?? null, fecha, monto_4x1000: tax } })
+    return json({ ok: true, prueba: true, mensaje, interpretado: { ...p, cuenta: nombreCuenta, categoria: categoria?.nombre ?? null, fecha, monto_4x1000: tax } })
   }
 
   const { data: nueva, error } = await supabase
@@ -341,7 +371,7 @@ Deno.serve(async (req) => {
 
   const notificacion = {
     titulo: p.tipo === 'ingreso' ? 'Ingreso anotado' : 'Gasto anotado',
-    cuerpo: [partes.join(' '), formatoMonto(monto, cuenta.moneda), categoria?.nombre, cuenta.nombre].filter(Boolean).join(' · ') + (p.ayer ? ' · ayer' : ''),
+    cuerpo: [partes.join(' '), formatoMonto(monto, cuenta.moneda), categoria?.nombre, nombreCuenta].filter(Boolean).join(' · ') + (p.ayer ? ' · ayer' : ''),
   }
   return json({ ok: true, mensaje, notificacion, id: nueva.id })
 })

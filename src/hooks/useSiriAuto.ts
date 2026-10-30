@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appAlert, appConfirm } from '../lib/dialogs'
 import { useIdioma } from '../lib/IdiomaContext'
-import { anuncioSiriVisto, asegurarSiri, marcarAnuncioSiriVisto, siriActivado, siriDisponible } from '../lib/siri'
+import { anuncioSiriVisto, asegurarSiri, guardarCuentasSiri, marcarAnuncioSiriVisto, siriActivado, siriDisponible } from '../lib/siri'
 import { tourVisto } from '../lib/onboardingStatus'
 
 // Activa "Anotar con Siri" solo (en iPhone) apenas hay sesión, y la
@@ -18,6 +18,7 @@ export function useSiriAuto(userId: string | null, tourActivo: boolean) {
     ;(async () => {
       try {
         await asegurarSiri(userId)
+        if (await siriActivado()) void guardarCuentasSiri(userId).catch(() => {})
         if (cancelado || (await anuncioSiriVisto())) return
         // Si no quedó activo (no es iPhone o lo apagó a propósito), no hay
         // nada que anunciar.

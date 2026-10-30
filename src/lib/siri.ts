@@ -91,3 +91,21 @@ export async function desactivarSiri(userId: string): Promise<void> {
     await Preferences.set({ key: LLAVE_APAGADO, value: '1' })
   } catch { /* ya no estaba */ }
 }
+
+// Nombres de las cuentas para que Siri los reconozca al preguntar
+// "¿Cómo pagaste?" (CashFlowSiri.swift los ofrece como opciones). Sin esto
+// el dictado escribe "Nequi" como "Nizcy", "Nicky"… El Swift lee la llave
+// "CapacitorStorage.siri_cuentas" (JSON con un arreglo de nombres).
+export async function guardarCuentasSiri(userId: string): Promise<void> {
+  if (!vozNativaDisponible()) return
+  const { data, error } = await supabase
+    .from('cuentas')
+    .select('nombre, activa, congelada, tipo')
+    .eq('user_id', userId)
+  if (error || !data) return
+  const nombres = data
+    .filter((c) => c.activa !== false && c.congelada !== true && c.tipo !== 'cdt')
+    .map((c) => String(c.nombre).trim())
+    .filter(Boolean)
+  try { await Preferences.set({ key: 'siri_cuentas', value: JSON.stringify(nombres) }) } catch { /* nada */ }
+}
