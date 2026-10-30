@@ -21,9 +21,11 @@ export default function EditarPerfil() {
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [ciudad, setCiudad] = useState('')
   const [pais, setPais] = useState('')
-  // El nickname no se cambia una vez puesto. Solo las cuentas viejas que no
-  // tienen pueden ponerse uno (una sola vez).
+  // Nickname: quien no tiene puede crearlo; quien ya tiene puede cambiarlo
+  // máximo una vez cada 30 días (la base de datos también lo valida).
   const [nickname, setNickname] = useState<string | null>(null)
+  const [nickCambiadoAt, setNickCambiadoAt] = useState<string | null>(null)
+  const [editandoNick, setEditandoNick] = useState(false)
   const [nickNuevo, setNickNuevo] = useState('')
   const [nickEstado, setNickEstado] = useState<'vacio' | 'revisando' | 'libre' | 'ocupado' | 'invalido'>('vacio')
   const [avatarUrl, setAvatarUrl] = useState((user?.user_metadata?.avatar_url as string) || '')
@@ -63,6 +65,16 @@ export default function EditarPerfil() {
         setLoadingProfile(false)
       })
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('nickname_cambiado_at').eq('id', user.id).single()
+      .then(({ data, error }) => { if (!error) setNickCambiadoAt((data as { nickname_cambiado_at: string | null } | null)?.nickname_cambiado_at ?? null) })
+  }, [user])
+
+  const proximoCambio = nickCambiadoAt ? new Date(new Date(nickCambiadoAt).getTime() + 30 * 86_400_000) : null
+  const puedeCambiarNick = !nickname || !proximoCambio || proximoCambio <= new Date()
+  const escribiendoNick = !nickname || editandoNick
 
   useEffect(() => {
     const n = nickNuevo.trim().toLowerCase()
@@ -113,7 +125,7 @@ export default function EditarPerfil() {
 
   async function save() {
     if (!user) return
-    if (!nickname && nickNuevo.trim() && nickEstado !== 'libre') { setMsg(nickEstado === 'ocupado' ? 'Ese nickname ya está en uso, prueba otro.' : 'Revisa el nickname: solo letras, números, punto y _ (3 a 20).'); return }
+    if (escribiendoNick && nickNuevo.trim() && nickNuevo.trim().toLowerCase() !== nickname && nickEstado !== 'libre') { setMsg(nickEstado === 'ocupado' ? 'Ese nickname ya está en uso, prueba otro.' : 'Revisa el nickname: solo letras, números, punto y _ (3 a 20).'); return }
     setSaving(true)
     setMsg(null)
 
@@ -126,11 +138,12 @@ export default function EditarPerfil() {
         fecha_nacimiento: fechaNacimiento || null,
         ciudad: ciudad || null,
         pais: pais || null,
-        ...(!nickname && nickEstado === 'libre' ? { nickname: nickNuevo.trim().toLowerCase() } : {}),
+        ...(escribiendoNick && puedeCambiarNick && nickEstado === 'libre' && nickNuevo.trim().toLowerCase() !== nickname ? { nickname: nickNuevo.trim().toLowerCase() } : {}),
       })
       .eq('id', user.id)
 
     setSaving(false)
+    if (profileError?.message?.includes('una vez al mes')) { setMsg('Solo puedes cambiar tu nickname una vez al mes.'); return }
     if (authError || profileError) {
       setMsg(t('ep_error_guardar', { msg: authError?.message || profileError?.message || '' }))
       return
@@ -179,11 +192,13 @@ export default function EditarPerfil() {
         </div>
 
         <Campo label="Nickname">
-          {nickname ? (
-            <div className="flex items-center gap-2 rounded-2xl px-4" style={{ ...INPUT, color: 'var(--text-2)' }}>
+          {!escribiendoNick ? (
+            <div className="flex items-center gap-2 rounded-2xl pl-4 pr-1.5" style={{ ...INPUT, color: 'var(--text-2)' }}>
               <AtSign size={17} />
               <span className="flex-1 text-[15px] font-semibold" style={{ color: 'var(--text-1)' }}>{nickname}</span>
-              <Lock size={15} />
+              {puedeCambiarNick ? (
+                <button type="button" onClick={(e) => { e.preventDefault(); setEditandoNick(true); setNickNuevo(nickname ?? '') }} className="rounded-xl px-3 text-[12px] font-bold" style={{ height: 38, background: 'var(--card-2)', color: 'var(--lime)' }}>Cambiar</button>
+              ) : <span className="pr-2.5"><Lock size={15} /></span>}
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-2xl px-4" style={{ ...INPUT, borderColor: nickEstado === 'libre' ? 'var(--lime)' : nickEstado === 'ocupado' || nickEstado === 'invalido' ? 'var(--coral)' : 'var(--line)' }}>
@@ -192,13 +207,17 @@ export default function EditarPerfil() {
                 className="min-w-0 flex-1 bg-transparent text-[15px] outline-none" style={{ color: 'var(--text-1)' }} />
               {nickEstado === 'revisando' && <Loader2 size={15} className="animate-spin" color="var(--text-2)" />}
               {nickEstado === 'libre' && <Check size={15} color="var(--lime)" />}
+              {nickname && <button type="button" aria-label="Cancelar cambio de nickname" onClick={(e) => { e.preventDefault(); setEditandoNick(false); setNickNuevo('') }}><X size={16} color="var(--text-2)" /></button>}
             </div>
           )}
-          <span className="mt-1.5 block text-[11.5px]" style={{ color: !nickname && (nickEstado === 'ocupado' || nickEstado === 'invalido') ? 'var(--coral)' : 'var(--text-2)' }}>
-            {nickname ? 'Con tu nickname también puedes entrar. No se puede cambiar.'
-              : nickEstado === 'ocupado' ? 'Ya está en uso, prueba otro.'
-              : nickEstado === 'invalido' ? 'Solo letras, números, punto y _ (3 a 20).'
-              : 'Escoge uno para entrar sin escribir el correo. Ojo: después no se puede cambiar.'}
+          <span className="mt-1.5 block text-[11.5px]" style={{ color: escribiendoNick && (nickEstado === 'ocupado' || nickEstado === 'invalido') ? 'var(--coral)' : 'var(--text-2)' }}>
+            {escribiendoNick
+              ? (nickEstado === 'ocupado' ? 'Ya está en uso, prueba otro.'
+                : nickEstado === 'invalido' ? 'Solo letras, números, punto y _ (3 a 20).'
+                : nickname ? 'Ojo: después de cambiarlo, el próximo cambio es en 30 días.'
+                : 'Escoge uno para entrar sin escribir el correo. Lo puedes cambiar una vez al mes.')
+              : puedeCambiarNick ? 'Con tu nickname también puedes entrar. Lo puedes cambiar una vez al mes.'
+              : `Con tu nickname también puedes entrar. Podrás cambiarlo desde el ${proximoCambio ? proximoCambio.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) : ''}.`}
           </span>
         </Campo>
 
