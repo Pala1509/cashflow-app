@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Botón de Ingreso: lima tenue, como el color lime dim -->
+<!-- Botón Ingreso: lima sólido con texto negro (igual que en iPhone) -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#26C6FF4D" />
-    <corners android:radius="16dp" />
+    <solid android:color="#C6FF4D" />
+    <corners android:radius="12dp" />
 </shape>

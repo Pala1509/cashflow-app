@@ -45,32 +45,24 @@ public class CashFlowWidgetLargeProvider extends AppWidgetProvider {
     }
 
     private static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        // Diseño igual al widget mediano de iPhone: saldo + botones a la
+        // izquierda y "Este mes" (ingresos / egresos) a la derecha.
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_cashflow_large);
 
-        SharedPreferences prefs = context.getSharedPreferences(
-                CashFlowWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE);
-        String balance = prefs.getString(CashFlowWidgetProvider.PREF_BALANCE_TEXT, "$0");
-        views.setTextViewText(R.id.widget_balance, balance);
-
-        // Ingresos/egresos del mes — lo "de más" que pidió el usuario,
-        // aparte de los movimientos, para que este widget muestre un
-        // poco más del panorama completo, no solo la lista.
-        views.setTextViewText(R.id.widget_ingresos_mes, prefs.getString(PREF_INGRESOS_MES, "$0"));
-        views.setTextViewText(R.id.widget_egresos_mes, prefs.getString(PREF_EGRESOS_MES, "$0"));
-
-        String recientes = prefs.getString(CashFlowWidgetProvider.PREF_RECIENTES, "");
-        String[] lineas = recientes.trim().isEmpty() ? new String[0] : recientes.split("\n");
-        int[] filaIds = { R.id.widget_reciente_1, R.id.widget_reciente_2, R.id.widget_reciente_3, R.id.widget_reciente_4 };
-
-        for (int i = 0; i < filaIds.length; i++) {
-            if (i < lineas.length && !lineas[i].trim().isEmpty()) {
-                views.setViewVisibility(filaIds[i], android.view.View.VISIBLE);
-                CashFlowWidgetProvider.pintarLineaReciente(views, filaIds[i], lineas[i]);
-            } else {
-                views.setViewVisibility(filaIds[i], android.view.View.GONE);
-            }
+        SharedPreferences prefs = context.getSharedPreferences(CashFlowWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE);
+        // Igual que en iPhone: si la app todavía no ha guardado el saldo,
+        // se muestra "Abre CashFlow" en letra más pequeña.
+        String balance = prefs.getString(CashFlowWidgetProvider.PREF_BALANCE_TEXT, null);
+        if (balance == null || balance.trim().isEmpty()) {
+            views.setTextViewText(R.id.widget_balance, "Abre CashFlow");
+            views.setTextViewTextSize(R.id.widget_balance, android.util.TypedValue.COMPLEX_UNIT_SP, 15);
+        } else {
+            views.setTextViewText(R.id.widget_balance, balance);
+            views.setTextViewTextSize(R.id.widget_balance, android.util.TypedValue.COMPLEX_UNIT_SP, 26);
         }
-        views.setViewVisibility(R.id.widget_reciente_vacio, lineas.length == 0 ? android.view.View.VISIBLE : android.view.View.GONE);
+
+        views.setTextViewText(R.id.widget_ingresos_mes, prefs.getString(PREF_INGRESOS_MES, "—"));
+        views.setTextViewText(R.id.widget_egresos_mes, prefs.getString(PREF_EGRESOS_MES, "—"));
 
         Intent ingresoIntent = new Intent(context, QuickAddActivity.class);
         ingresoIntent.putExtra("cashflow_widget_action", "ingreso");
@@ -85,20 +77,8 @@ public class CashFlowWidgetLargeProvider extends AppWidgetProvider {
         PendingIntent egresoPending = PendingIntent.getActivity(
                 context, 5, egresoIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_btn_egreso, egresoPending);
-
-        // 🎤 Anotar con voz: VozActivity es invisible, solo muestra la
-        // burbuja de dictado encima de la pantalla de inicio (no abre la app).
-        Intent vozIntent = new Intent(context, VozActivity.class);
-        vozIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent vozPending = PendingIntent.getActivity(
-                context, 14, vozIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_btn_voz, vozPending);
-
-        Intent abrirIntent = new Intent(context, MainActivity.class);
-        abrirIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent abrirPending = PendingIntent.getActivity(
-                context, 6, abrirIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_balance, abrirPending);
+        // El resto del widget también abre "Nuevo gasto" (como en iPhone).
+        views.setOnClickPendingIntent(R.id.widget_root, egresoPending);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }

@@ -73,60 +73,30 @@ public class CashFlowWidgetProvider extends AppWidgetProvider {
     }
 
     private static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        // Diseño igual al widget pequeño de iPhone: marca, saldo y "− Gasto".
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_cashflow);
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String balance = prefs.getString(PREF_BALANCE_TEXT, "$0");
-        views.setTextViewText(R.id.widget_balance, balance);
-
-        // Hasta 3 movimientos recientes (uno menos que el widget grande —
-        // acá el espacio es más chico). Mismo helper de arriba para el
-        // color de cada uno.
-        String recientes = prefs.getString(PREF_RECIENTES, "");
-        String[] lineas = recientes.trim().isEmpty() ? new String[0] : recientes.split("\n");
-        int[] filaIds = { R.id.widget_reciente_1, R.id.widget_reciente_2, R.id.widget_reciente_3 };
-        for (int i = 0; i < filaIds.length; i++) {
-            if (i < lineas.length && !lineas[i].trim().isEmpty()) {
-                views.setViewVisibility(filaIds[i], android.view.View.VISIBLE);
-                pintarLineaReciente(views, filaIds[i], lineas[i]);
-            } else {
-                views.setViewVisibility(filaIds[i], android.view.View.GONE);
-            }
+        // Igual que en iPhone: si la app todavía no ha guardado el saldo,
+        // se muestra "Abre CashFlow" en letra más pequeña.
+        String balance = prefs.getString(PREF_BALANCE_TEXT, null);
+        if (balance == null || balance.trim().isEmpty()) {
+            views.setTextViewText(R.id.widget_balance, "Abre CashFlow");
+            views.setTextViewTextSize(R.id.widget_balance, android.util.TypedValue.COMPLEX_UNIT_SP, 15);
+        } else {
+            views.setTextViewText(R.id.widget_balance, balance);
+            views.setTextViewTextSize(R.id.widget_balance, android.util.TypedValue.COMPLEX_UNIT_SP, 22);
         }
-        views.setViewVisibility(R.id.widget_reciente_vacio, lineas.length == 0 ? android.view.View.VISIBLE : android.view.View.GONE);
 
-        // Tocar "+ Ingreso" o "- Egreso" abre la ventanita flotante de
-        // agregar rápido (QuickAddActivity), NO la app completa — antes
-        // abría MainActivity y navegaba hasta /movimiento/nuevo, que
-        // seguía siendo varios toques y pantallas hasta guardar.
-        Intent ingresoIntent = new Intent(context, QuickAddActivity.class);
-        ingresoIntent.putExtra("cashflow_widget_action", "ingreso");
-        ingresoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent ingresoPending = PendingIntent.getActivity(
-                context, 1, ingresoIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_btn_ingreso, ingresoPending);
-
+        // Todo el widget (y el botón) abre la ventanita de "Nuevo gasto",
+        // como el widgetURL del widget de iPhone.
         Intent egresoIntent = new Intent(context, QuickAddActivity.class);
         egresoIntent.putExtra("cashflow_widget_action", "egreso");
         egresoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent egresoPending = PendingIntent.getActivity(
                 context, 2, egresoIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.widget_root, egresoPending);
         views.setOnClickPendingIntent(R.id.widget_btn_egreso, egresoPending);
-
-        // 🎤 Anotar con voz: VozActivity es invisible, solo muestra la
-        // burbuja de dictado encima de la pantalla de inicio (no abre la app).
-        Intent vozIntent = new Intent(context, VozActivity.class);
-        vozIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent vozPending = PendingIntent.getActivity(
-                context, 4, vozIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_btn_voz, vozPending);
-
-        // Tocar el resto del widget (la marca/balance) simplemente abre la app normal.
-        Intent abrirIntent = new Intent(context, MainActivity.class);
-        abrirIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent abrirPending = PendingIntent.getActivity(
-                context, 3, abrirIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_balance, abrirPending);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
