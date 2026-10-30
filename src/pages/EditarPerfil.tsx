@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, X, User, MapPin, Camera } from 'lucide-react'
+import { ArrowLeft, X, Camera, AtSign, Lock, Mail, Check, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { getIniciales } from '../lib/profile'
@@ -21,6 +21,11 @@ export default function EditarPerfil() {
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [ciudad, setCiudad] = useState('')
   const [pais, setPais] = useState('')
+  // El nickname no se cambia una vez puesto. Solo las cuentas viejas que no
+  // tienen pueden ponerse uno (una sola vez).
+  const [nickname, setNickname] = useState<string | null>(null)
+  const [nickNuevo, setNickNuevo] = useState('')
+  const [nickEstado, setNickEstado] = useState<'vacio' | 'revisando' | 'libre' | 'ocupado' | 'invalido'>('vacio')
   const [avatarUrl, setAvatarUrl] = useState((user?.user_metadata?.avatar_url as string) || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -41,7 +46,7 @@ export default function EditarPerfil() {
     if (!user) return
     supabase
       .from('profiles')
-      .select('apellido, fecha_nacimiento, ciudad, avatar_url, pais')
+      .select('apellido, fecha_nacimiento, ciudad, avatar_url, pais, nickname')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -53,10 +58,24 @@ export default function EditarPerfil() {
           // pais no existía antes de este campo — los beta que ya tenían
           // cuenta lo tendrán null hasta que lo guarden aquí una vez.
           if (data.pais) setPais(data.pais)
+          setNickname((data.nickname as string | null) ?? null)
         }
         setLoadingProfile(false)
       })
   }, [user])
+
+  useEffect(() => {
+    const n = nickNuevo.trim().toLowerCase()
+    if (!n) { setNickEstado('vacio'); return }
+    if (!/^[a-z0-9_.]{3,20}$/.test(n)) { setNickEstado('invalido'); return }
+    setNickEstado('revisando')
+    const id = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('nickname_disponible', { p_nickname: n })
+      if (error) { setNickEstado('vacio'); return }
+      setNickEstado(data ? 'libre' : 'ocupado')
+    }, 450)
+    return () => clearTimeout(id)
+  }, [nickNuevo])
 
   function handlePickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -94,6 +113,7 @@ export default function EditarPerfil() {
 
   async function save() {
     if (!user) return
+    if (!nickname && nickNuevo.trim() && nickEstado !== 'libre') { setMsg(nickEstado === 'ocupado' ? 'Ese nickname ya está en uso, prueba otro.' : 'Revisa el nickname: solo letras, números, punto y _ (3 a 20).'); return }
     setSaving(true)
     setMsg(null)
 
@@ -106,6 +126,7 @@ export default function EditarPerfil() {
         fecha_nacimiento: fechaNacimiento || null,
         ciudad: ciudad || null,
         pais: pais || null,
+        ...(!nickname && nickEstado === 'libre' ? { nickname: nickNuevo.trim().toLowerCase() } : {}),
       })
       .eq('id', user.id)
 
@@ -148,30 +169,62 @@ export default function EditarPerfil() {
         </div>
         {uploading && <div className="mb-3 text-center text-[10.5px]" style={{ color: 'var(--text-3)' }}>{t('ep_subiendo')}</div>}
 
-        <FieldLabel>{t('ep_nombre')}</FieldLabel>
-        <InputRow icon={<User size={16} />} value={nombre} onChange={setNombre} placeholder={t('ep_placeholder_nombre')} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <Campo label={t('ep_nombre')}>
+            <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t('ep_placeholder_nombre')} autoComplete="given-name" className="w-full rounded-2xl px-4 text-[15px] outline-none" style={INPUT} />
+          </Campo>
+          <Campo label={t('ep_apellido')}>
+            <input value={apellido} onChange={(e) => setApellido(e.target.value)} placeholder={t('ep_placeholder_apellido')} autoComplete="family-name" className="w-full rounded-2xl px-4 text-[15px] outline-none" style={INPUT} />
+          </Campo>
+        </div>
 
-        <FieldLabel>{t('ep_apellido')}</FieldLabel>
-        <InputRow icon={<User size={16} />} value={apellido} onChange={setApellido} placeholder={t('ep_placeholder_apellido')} />
+        <Campo label="Nickname">
+          {nickname ? (
+            <div className="flex items-center gap-2 rounded-2xl px-4" style={{ ...INPUT, color: 'var(--text-2)' }}>
+              <AtSign size={17} />
+              <span className="flex-1 text-[15px] font-semibold" style={{ color: 'var(--text-1)' }}>{nickname}</span>
+              <Lock size={15} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-2xl px-4" style={{ ...INPUT, borderColor: nickEstado === 'libre' ? 'var(--lime)' : nickEstado === 'ocupado' || nickEstado === 'invalido' ? 'var(--coral)' : 'var(--line)' }}>
+              <AtSign size={17} color="var(--text-2)" />
+              <input value={nickNuevo} onChange={(e) => setNickNuevo(e.target.value.toLowerCase().replace(/\s/g, ''))} placeholder="tu.nickname" maxLength={20} autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                className="min-w-0 flex-1 bg-transparent text-[15px] outline-none" style={{ color: 'var(--text-1)' }} />
+              {nickEstado === 'revisando' && <Loader2 size={15} className="animate-spin" color="var(--text-2)" />}
+              {nickEstado === 'libre' && <Check size={15} color="var(--lime)" />}
+            </div>
+          )}
+          <span className="mt-1.5 block text-[11.5px]" style={{ color: !nickname && (nickEstado === 'ocupado' || nickEstado === 'invalido') ? 'var(--coral)' : 'var(--text-2)' }}>
+            {nickname ? 'Con tu nickname también puedes entrar. No se puede cambiar.'
+              : nickEstado === 'ocupado' ? 'Ya está en uso, prueba otro.'
+              : nickEstado === 'invalido' ? 'Solo letras, números, punto y _ (3 a 20).'
+              : 'Escoge uno para entrar sin escribir el correo. Ojo: después no se puede cambiar.'}
+          </span>
+        </Campo>
 
-        <FieldLabel>{t('ep_fecha_nacimiento')}</FieldLabel>
-        <DateSelect value={fechaNacimiento} onChange={setFechaNacimiento} />
+        <Campo label="Correo electrónico">
+          <div className="flex items-center gap-2 rounded-2xl px-4" style={{ ...INPUT, color: 'var(--text-2)' }}>
+            <Mail size={17} />
+            <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: 'var(--text-1)' }}>{user?.email ?? '—'}</span>
+            <Lock size={15} />
+          </div>
+        </Campo>
 
-        <FieldLabel>{t('ep_ciudad')}</FieldLabel>
-        <InputRow icon={<MapPin size={16} />} value={ciudad} onChange={setCiudad} placeholder={t('ep_placeholder_ciudad')} />
+        <Campo label={t('ep_fecha_nacimiento')}>
+          <DateSelect value={fechaNacimiento} onChange={setFechaNacimiento} />
+        </Campo>
 
-        <FieldLabel>{t('ep_pais')}</FieldLabel>
-        <select
-          value={pais}
-          onChange={(e) => setPais(e.target.value)}
-          className="mb-2.5 w-full rounded-2xl px-3.5 py-3 text-[13px] outline-none"
-          style={{ background: 'var(--card)', border: '1px solid var(--line)', color: pais ? 'var(--text-1)' : 'var(--text-3)' }}
-        >
-          <option value="">{t('ep_pais_selecciona')}</option>
-          {PAISES.map((p) => (
-            <option key={p.nombre} value={p.nombre}>{p.nombre}</option>
-          ))}
-        </select>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Campo label={t('ep_ciudad')}>
+            <input value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder={t('ep_placeholder_ciudad')} autoComplete="address-level2" className="w-full rounded-2xl px-4 text-[15px] outline-none" style={INPUT} />
+          </Campo>
+          <Campo label={t('ep_pais')}>
+            <select value={pais} onChange={(e) => setPais(e.target.value)} className="w-full rounded-2xl px-3 text-[15px] outline-none" style={{ ...INPUT, color: pais ? 'var(--text-1)' : 'var(--text-2)' }}>
+              <option value="">{t('ep_pais_selecciona')}</option>
+              {PAISES.map((p) => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
+            </select>
+          </Campo>
+        </div>
 
         {loadingProfile && <div className="mt-1 text-[10.5px]" style={{ color: 'var(--text-3)' }}>{t('ep_cargando_info')}</div>}
         {msg && <div className="mt-3 text-xs" style={{ color: 'var(--coral)' }}>{msg}</div>}
@@ -197,21 +250,14 @@ export default function EditarPerfil() {
   )
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-2 mt-4 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>{children}</div>
-}
+const INPUT: React.CSSProperties = { height: 52, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--text-1)' }
 
-function InputRow({ icon, placeholder, value, onChange }: { icon: React.ReactNode; placeholder: string; value: string; onChange: (v: string) => void }) {
+// Mismo estilo de campo que el registro: etiqueta pequeña arriba y caja alta.
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="mb-2.5 flex items-center gap-2.5 rounded-2xl px-3.5 py-3" style={{ background: 'var(--card)', border: '1px solid var(--line)' }}>
-      <span style={{ color: 'var(--text-3)' }}>{icon}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-transparent text-[13px] outline-none"
-        style={{ color: 'var(--text-1)' }}
-      />
-    </div>
+    <label className="mt-3.5 flex min-w-0 flex-col gap-1.5">
+      <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{label}</span>
+      {children}
+    </label>
   )
 }

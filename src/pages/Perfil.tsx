@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Camera, User, Lock, Bell, DollarSign, Grid3x3, Landmark,
@@ -33,6 +33,11 @@ export default function Perfil() {
 
   const nombre = getNombre(user)
   const sub = user?.email || (user?.phone ? `+${user.phone}` : '')
+  const [nickname, setNickname] = useState<string | null>(null)
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('nickname').eq('id', user.id).single().then(({ data }) => setNickname((data?.nickname as string | null) ?? null))
+  }, [user])
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -66,7 +71,8 @@ export default function Perfil() {
           <div className="mt-3 text-[17px] font-bold font-display">
             {nombre}{user?.user_metadata?.apellido ? ` ${user.user_metadata.apellido}` : ''}
           </div>
-          <div className="mt-0.5 text-[11.5px]" style={{ color: 'var(--text-3)' }}>{sub}</div>
+          {nickname && <div className="mt-1 text-[13px] font-semibold" style={{ color: 'var(--lime)' }}>@{nickname}</div>}
+          <div className="mt-0.5 text-[11.5px]" style={{ color: 'var(--text-2)' }}>{sub}</div>
         </div>
 
         <CashFlowProBanner />
