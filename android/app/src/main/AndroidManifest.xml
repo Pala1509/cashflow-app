@@ -35,6 +35,25 @@
             android:noHistory="false"
             android:exported="true" />
 
+        <!-- Segundo ícono en el cajón de apps: "Anotar gasto". Abre directo el
+        micrófono (VozActivity). Sirve para que Bixby ("Comandos rápidos" →
+        Abrir app) o el doble toque del botón lateral de Samsung lo lancen,
+        ya que esos solo saben abrir apps, no accesos directos. -->
+        <activity-alias
+            android:name=".AnotarGastoLauncher"
+            android:targetActivity=".VozActivity"
+            android:label="@string/lanzador_voz"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Ventanita flotante de "Agregar rápido" — Activity aparte de
         MainActivity a propósito (taskAffinity distinto), para que abrir esto
         desde el widget no interrumpa ni reemplace la app si ya estaba abierta

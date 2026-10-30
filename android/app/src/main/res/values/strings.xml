@@ -5,6 +5,7 @@
     <string name="package_name">studio.vantalab.cashflow</string>
     <string name="custom_url_scheme">studio.vantalab.cashflow</string>
     <string name="widget_voz_descripcion">Anota un gasto con tu voz sin abrir la app</string>
+    <string name="lanzador_voz">Anotar gasto</string>
     <string name="atajo_voz_corto">Anotar con voz</string>
     <string name="atajo_voz_largo">Anotar un movimiento con voz</string>
     <string name="atajo_gasto_corto">Gasto con voz</string>
