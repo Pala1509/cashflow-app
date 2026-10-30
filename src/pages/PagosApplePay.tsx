@@ -14,11 +14,17 @@ import { siriActivado, activarSiri } from '../lib/siri'
 
 interface TarjetaWallet { id: string; tarjeta: string; cuenta_id: string | null; ultimo_uso: string | null }
 
+// Enlace de iCloud del atajo ya armado (disparador de Wallet + Registrar
+// pago con Comercio, Cantidad y Tarjeta o pase). Si iOS lo importa completo,
+// la persona solo toca "Agregar atajo". Si cambia, se reemplaza aquí.
+const ENLACE_ATAJO = 'https://www.icloud.com/shortcuts/0d9abe5f5c63492fa785fc572d456a33'
+
+// Paso a paso manual por si el enlace no trae el disparador de Wallet.
 const PASOS: { titulo: string; detalle: string }[] = [
-  { titulo: 'Abre Atajos y crea una automatización', detalle: 'Pestaña Automatización → botón +. En el buscador escribe "Wallet" y escoge Wallet: "Al realizar un pago sin contacto con mi tarjeta".' },
-  { titulo: 'Escoge tus tarjetas', detalle: 'Deja "Cualquier tarjeta" o marca solo las que quieras (por ejemplo LuloBank o Nu Mastercard Debit). Si te aparece, elige "Ejecutar inmediatamente".' },
-  { titulo: 'Agrega la acción de CashFlow', detalle: 'En el buscador de acciones escribe "Registrar pago" y toca la de CashFlow.' },
-  { titulo: 'Conecta los datos del pago', detalle: 'Toca "Comercio" y escoge Entrada del atajo → Comercio. Haz lo mismo con "Importe" (→ Importe) y "Tarjeta" (→ Tarjeta). Guarda y listo.' },
+  { titulo: 'Abre Atajos y crea una automatización', detalle: 'Toca + y en el buscador escribe "Wallet". Escoge Wallet: "Al realizar un pago sin contacto con mi tarjeta". Queda "Cuando se use Cualquier tarjeta" (o escoge solo las tuyas, como LuloBank o Nu).' },
+  { titulo: 'Déjalo automático', detalle: 'Toca la flechita junto a "Cualquier tarjeta": deja Automatización prendido, Confirmar antes de ejecutar apagado y apaga Notificar (CashFlow ya te avisa).' },
+  { titulo: 'Agrega la acción de CashFlow', detalle: 'Abajo en Buscar escribe "CashFlow" y toca Registrar pago. Queda: "Registrar pago en Comercio por Importe con Tarjeta".' },
+  { titulo: 'Conecta los datos del pago', detalle: 'Toca Comercio → escoge el botón azul Transacción → tócalo otra vez → Comercio. Repite: Importe → Transacción → Cantidad. Tarjeta → Transacción → Tarjeta o pase. Toca ✕ y luego ‹ para guardar.' },
 ]
 
 export default function PagosApplePay() {
@@ -70,7 +76,14 @@ export default function PagosApplePay() {
             {conectado === false && <div className="text-[12.5px]" style={{ color: 'var(--coral)' }}>Conéctate a internet para activar los pagos automáticos.</div>}
           </div>
 
-          <div className="mb-2 mt-6 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>Cómo activarlo</div>
+          <a href={ENLACE_ATAJO} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl text-[16px] font-bold" style={{ height: 56, background: 'var(--lime)', color: 'var(--lime-text)' }}>
+            <Zap size={18} /> Agregar en un toque
+          </a>
+          <div className="mt-2 text-center text-[12.5px] leading-relaxed" style={{ color: 'var(--text-2)' }}>
+            Se abre Atajos con todo listo: toca <b style={{ color: 'var(--text-1)' }}>Agregar atajo</b> y escoge tus tarjetas si te lo pide.
+          </div>
+
+          <div className="mb-2 mt-7 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>¿No funcionó? Hazlo a mano</div>
           <div className="flex flex-col gap-2.5">
             {PASOS.map((p, i) => (
               <div key={i} className="flex gap-3 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--line)' }}>
@@ -83,7 +96,7 @@ export default function PagosApplePay() {
             ))}
           </div>
 
-          <a href="shortcuts://" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold" style={{ height: 52, background: 'var(--lime)', color: 'var(--lime-text)' }}>
+          <a href="shortcuts://" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold" style={{ height: 52, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--text-1)' }}>
             Abrir Atajos <ExternalLink size={16} />
           </a>
 
