@@ -5,6 +5,8 @@ import Logo from './Logo'
 import Avatar from './Avatar'
 import DialogHost from './DialogHost'
 import TourOverlay from './TourOverlay'
+import OnboardingGuiado from './OnboardingGuiado'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { pendingCount, syncOutbox } from '../lib/offlineSync'
@@ -52,7 +54,10 @@ export default function AppShell() {
   const { t } = useIdioma()
   const [pendientes, setPendientes] = useState(0)
   const [mostrarTour, setMostrarTour] = useState(false)
-  useSiriAuto(user?.id ?? null, mostrarTour)
+  // Onboarding guiado (solo cuentas nuevas): undefined = revisando,
+  // true = mostrarlo. Va ANTES del tour: el tour arranca cuando termina.
+  const [mostrarGuiado, setMostrarGuiado] = useState<boolean | undefined>(undefined)
+  useSiriAuto(user?.id ?? null, mostrarTour || mostrarGuiado !== false)
 
   useEffect(() => {
     pendingCount().then(setPendientes)
@@ -65,7 +70,13 @@ export default function AppShell() {
   useEffect(() => {
     if (!user) return
     let cancelado = false
-    tourVisto(user.id).then((visto) => { if (!cancelado && !visto) setMostrarTour(true) })
+    supabase.from('profiles').select('onboarding_guiado_completado').eq('id', user.id).single().then(({ data, error }) => {
+      if (cancelado) return
+      // Sin red o sin respuesta: no se bloquea la app, se muestra la próxima vez.
+      const pendiente = !error && data?.onboarding_guiado_completado === false
+      setMostrarGuiado(pendiente)
+      if (!pendiente) tourVisto(user.id).then((visto) => { if (!cancelado && !visto) setMostrarTour(true) })
+    })
     _registerTourTrigger(() => setMostrarTour(true))
     return () => { cancelado = true; _registerTourTrigger(null) }
   }, [user])
@@ -74,6 +85,15 @@ export default function AppShell() {
     setMostrarTour(false)
     if (user) await marcarTourVisto(user.id)
   }
+
+  function terminarGuiado() {
+    setMostrarGuiado(false)
+    if (user) tourVisto(user.id).then((visto) => { if (!visto) setMostrarTour(true) })
+  }
+
+  // Mientras el onboarding guiado está abierto, la app de atrás no se monta:
+  // así al terminar Inicio carga de cero con las cuentas recién creadas.
+  if (user && mostrarGuiado) return <OnboardingGuiado userId={user.id} onDone={terminarGuiado} />
 
   function handleFab() {
     navigate('/movimiento/nuevo')
