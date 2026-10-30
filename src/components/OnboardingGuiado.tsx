@@ -178,7 +178,13 @@ export function MarcoOnb({ paso, onAtras, children, pie }: { paso: number | null
             <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{paso}/{TOTAL_PASOS}</span>
           </div>
         )}
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-4">{children}</div>
+        {/* El scroll va en este contenedor y el contenido en un hijo propio:
+        si los bloques fueran hijos directos de un flex con overflow, el
+        navegador los ENCOGE en vez de dejar hacer scroll (pasaba en "¿Qué
+        pagas todos los meses?" y se cortaba la lista). */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="flex min-h-full flex-col gap-5 pb-4">{children}</div>
+        </div>
         <div className="flex flex-shrink-0 flex-col pt-2">{pie}</div>
       </div>
     </div>
