@@ -7,7 +7,7 @@ interface AuthContextValue {
   session: Session | null
   user: User | null
   loading: boolean
-  signUpWithEmail: (email: string, password: string, nombre: string, apellido: string, telefono: string, pais: string) => Promise<{ error: string | null }>
+  signUpWithEmail: (datos: { email: string; password: string; nombre: string; apellido: string; pais: string; nickname: string }) => Promise<{ error: string | null; conSesion: boolean }>
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithPhone: (phone: string) => Promise<{ error: string | null }>
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: string | null }>
@@ -38,22 +38,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const signUpWithEmail: AuthContextValue['signUpWithEmail'] = async (email, password, nombre, apellido, telefono, pais) => {
-    const { error } = await supabase.auth.signUp({
+  const signUpWithEmail: AuthContextValue['signUpWithEmail'] = async ({ email, password, nombre, apellido, pais, nickname }) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      // pais viaja en raw_user_meta_data igual que nombre/apellido/telefono —
-      // handle_new_user() en Supabase lo copia a profiles.pais al crear la
-      // cuenta, para poder mostrarle de entrada solo bancos de su continente.
-      options: { data: { nombre, apellido, telefono, pais } },
+      // Todo viaja en raw_user_meta_data — handle_new_user() en Supabase lo
+      // copia a profiles (nombre, apellido, país y nickname único).
+      options: { data: { nombre, apellido, pais, nickname: nickname || null } },
     })
-    return { error: error?.message ?? null }
+    return { error: error?.message ?? null, conSesion: Boolean(data?.session) }
   }
 
-  const signInWithEmail: AuthContextValue['signInWithEmail'] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+  // Acepta correo o nickname. Con nickname, la Edge Function login-nickname
+  // busca el correo por dentro (nunca lo devuelve) y entrega la sesión.
+  const signInWithEmail: AuthContextValue['signInWithEmail'] = async (usuario, password) => {
+    const u = usuario.trim()
+    if (u.includes('@')) {
+      const { error } = await supabase.auth.signInWithPassword({ email: u, password })
+      return { error: error?.message ?? null }
+    }
+    const { data, error } = await supabase.functions.invoke('login-nickname', { body: { nickname: u, password } })
+    if (error || !data?.access_token) {
+      let msg = 'Usuario o contraseña incorrectos'
+      try {
+        const ctx = (error as { context?: Response } | null)?.context
+        if (ctx) { const j = await ctx.json(); if (j?.error) msg = j.error }
+      } catch { /* respuesta sin JSON */ }
+      return { error: msg }
+    }
+    const r = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token })
+    return { error: r.error?.message ?? null }
   }
+
 
   // Envía el código OTP por SMS. Requiere tener un proveedor SMS (ej. Twilio)
   // configurado en Supabase > Authentication > Providers > Phone.

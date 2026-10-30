@@ -5,7 +5,8 @@ import Logo from './Logo'
 import Avatar from './Avatar'
 import DialogHost from './DialogHost'
 import TourOverlay from './TourOverlay'
-import OnboardingGuiado from './OnboardingGuiado'
+import { OnboardingFlujo } from './OnboardingGuiado'
+import { leerPendiente, borrarPendiente, marcarOnboardingSaltado, type DatosOnboarding } from '../lib/onboardingDatos'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
@@ -57,6 +58,7 @@ export default function AppShell() {
   // Onboarding guiado (solo cuentas nuevas): undefined = revisando,
   // true = mostrarlo. Va ANTES del tour: el tour arranca cuando termina.
   const [mostrarGuiado, setMostrarGuiado] = useState<boolean | undefined>(undefined)
+  const [pendienteOnb, setPendienteOnb] = useState<DatosOnboarding | null>(null)
   useSiriAuto(user?.id ?? null, mostrarTour || mostrarGuiado !== false)
 
   useEffect(() => {
@@ -74,6 +76,17 @@ export default function AppShell() {
       if (cancelado) return
       // Sin red o sin respuesta: no se bloquea la app, se muestra la próxima vez.
       const pendiente = !error && data?.onboarding_guiado_completado === false
+      // Respuestas del registro guardadas en el celular (ver AuthScreen).
+      const local = leerPendiente(user.email)
+      if (pendiente && local === 'saltado') {
+        borrarPendiente()
+        void marcarOnboardingSaltado(user.id)
+        setMostrarGuiado(false)
+        tourVisto(user.id).then((visto) => { if (!cancelado && !visto) setMostrarTour(true) })
+        return
+      }
+      if (!pendiente && local) borrarPendiente()
+      if (pendiente && local && local !== 'saltado') setPendienteOnb(local)
       setMostrarGuiado(pendiente)
       if (!pendiente) tourVisto(user.id).then((visto) => { if (!cancelado && !visto) setMostrarTour(true) })
     })
@@ -93,7 +106,7 @@ export default function AppShell() {
 
   // Mientras el onboarding guiado está abierto, la app de atrás no se monta:
   // así al terminar Inicio carga de cero con las cuentas recién creadas.
-  if (user && mostrarGuiado) return <OnboardingGuiado userId={user.id} onDone={terminarGuiado} />
+  if (user && mostrarGuiado) return <OnboardingFlujo userId={user.id} pendiente={pendienteOnb} onDone={terminarGuiado} />
 
   function handleFab() {
     navigate('/movimiento/nuevo')

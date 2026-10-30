@@ -1,28 +1,28 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   ChevronLeft, Check, Target, CreditCard, BarChart3, TrendingUp, CalendarDays, Search, Info,
   Landmark, UserMinus, UserPlus, Plus, Sparkles,
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { todayLocal } from '../lib/date'
-import { pagosPrestaciones } from '../lib/prestaciones'
+import {
+  type DatosOnboarding, type TipoIngreso, type TipoCuentaOnb, type CuentaOnb, type FijoOnb,
+  soloDigitos, num, fmt, conPuntos, conNomina, bancoPrincipalDe, resumenOnboarding, proximasFechas,
+  aplicarOnboarding, marcarOnboardingSaltado, borrarPendiente,
+} from '../lib/onboardingDatos'
 
-// Onboarding guiado (cuentas nuevas): en 2 minutos la persona deja la app
-// con sus datos reales — objetivo, cómo le entra la plata (nómina → prima y
-// cesantías), banco principal, cuentas con saldo, deudas y gastos fijos. Al
-// terminar se crea TODO de verdad en Supabase. Se muestra una sola vez
-// (profiles.onboarding_guiado_completado); "Lo hago después" también lo
-// marca, sin crear nada. Es React, así que sirve igual en iPhone y Android.
+// Onboarding guiado: en 2 minutos la persona deja la app con sus datos
+// reales — objetivo, cómo le entra la plata (nómina → prima y cesantías),
+// banco principal, cuentas con saldo, deudas y gastos fijos.
+//
+// Se usa en dos lugares:
+//   - AuthScreen (registro): las preguntas van ANTES de crear la cuenta; al
+//     final se pasa al formulario de registro con los datos guardados.
+//   - AppShell (OnboardingFlujo): aplica datos pendientes del registro, o
+//     muestra las preguntas a una cuenta nueva que no las respondió.
+// Es React, así que sirve igual en iPhone y Android.
 //
 // Ojo: las piezas de UI (Campo, Switch, Fila…) viven FUERA del componente a
 // propósito. Si se definen adentro, React las trata como un componente nuevo
 // en cada render y los inputs pierden el foco con cada tecla.
-
-type TipoIngreso = 'nomina' | 'independiente' | 'ambos' | 'otro'
-type TipoCuenta = 'efectivo' | 'billetera_digital' | 'cuenta_bancaria' | 'monedero'
-
-interface CuentaForm { key: string; nombre: string; tipo: TipoCuenta; banco: string | null; marcada: boolean; saldo: string; principal?: boolean }
-interface FijoForm { nombre: string; icono: string; marcado: boolean; monto: string; dia: string }
 
 const OBJETIVOS: { id: string; titulo: string; desc: string; icon: typeof Target; color: string }[] = [
   { id: 'ahorrar', titulo: 'Ahorrar para algo', desc: 'Un viaje, una moto, independizarme…', icon: Target, color: 'lime' },
@@ -48,7 +48,7 @@ const BANCOS: { nombre: string; sigla: string; color: string }[] = [
 ]
 const BILLETERAS = new Set(['Nequi', 'Daviplata', 'Nu', 'Lulo Bank', 'RappiPay', 'Movii'])
 
-const FIJOS_BASE: FijoForm[] = [
+const FIJOS_BASE: FijoOnb[] = [
   { nombre: 'Arriendo', icono: 'home', marcado: false, monto: '', dia: '1' },
   { nombre: 'Servicios', icono: 'zap', marcado: false, monto: '', dia: '15' },
   { nombre: 'Celular', icono: 'device-mobile', marcado: false, monto: '', dia: '20' },
@@ -59,18 +59,20 @@ const FIJOS_BASE: FijoForm[] = [
   { nombre: 'Cuota moto/carro', icono: 'bike', marcado: false, monto: '', dia: '5' },
 ]
 
+export const DATOS_VACIOS: DatosOnboarding = {
+  objetivos: [], tipoIngreso: null, salario: '', frecuencia: 'quincenal', prestaciones: true,
+  banco: null, bancoOtro: '', cuentas: [],
+  tarjeta: { on: false, banco: '', cupo: '', debe: '', dia: '5' },
+  prestamo: { on: false, entidad: '', debe: '', cuota: '' },
+  deboA: { on: false, quien: '', monto: '' },
+  meDeben: { on: false, quien: '', monto: '' },
+  fijos: FIJOS_BASE,
+}
+
 const TOTAL_PASOS = 7
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-
-// ---- utilidades ----
-const soloDigitos = (s: string) => s.replace(/\D/g, '')
-const num = (s: string) => Number(soloDigitos(s) || 0)
-const fmt = (n: number) => (n < 0 ? '−$' : '$') + Math.round(Math.abs(n)).toLocaleString('es-CO')
-const conPuntos = (s: string) => { const d = soloDigitos(s); return d ? Number(d).toLocaleString('es-CO') : '' }
-const tipoDeBanco = (banco: string): TipoCuenta => (BILLETERAS.has(banco) ? 'billetera_digital' : 'cuenta_bancaria')
-const ICONO_TIPO: Record<TipoCuenta, string> = { efectivo: 'cash', billetera_digital: 'device-mobile', cuenta_bancaria: 'building-bank', monedero: 'piggy-bank' }
-const COLOR_TIPO: Record<TipoCuenta, string> = { efectivo: 'lime', billetera_digital: 'lavender', cuenta_bancaria: 'yellow', monedero: 'teal' }
-const ETIQUETA_TIPO: Record<TipoCuenta, string> = { efectivo: 'Plata física', billetera_digital: 'Billetera digital', cuenta_bancaria: 'Cuenta bancaria', monedero: 'Alcancía o bolsillo' }
+const tipoDeBanco = (banco: string): TipoCuentaOnb => (BILLETERAS.has(banco) ? 'billetera_digital' : 'cuenta_bancaria')
+const ETIQUETA_TIPO: Record<TipoCuentaOnb, string> = { efectivo: 'Plata física', billetera_digital: 'Billetera digital', cuenta_bancaria: 'Cuenta bancaria', monedero: 'Alcancía o bolsillo' }
 const v = (c: string) => `var(--${c})`
 const vd = (c: string) => `var(--${c}-dim)`
 const DISPLAY = "'Space Grotesk', sans-serif"
@@ -123,9 +125,9 @@ function CampoTexto({ label, valor, onChange, placeholder, numerico }: { label: 
   )
 }
 
-function Boton({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) {
+export function BotonOnb({ children, onClick, disabled, type = 'button' }: { children: ReactNode; onClick?: () => void; disabled?: boolean; type?: 'button' | 'submit' }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="flex w-full items-center justify-center rounded-2xl text-[16px] font-bold"
+    <button type={type} onClick={onClick} disabled={disabled} className="flex w-full items-center justify-center rounded-2xl text-[16px] font-bold"
       style={{ height: 56, background: 'var(--lime)', color: 'var(--lime-text)', opacity: disabled ? 0.5 : 1 }}>{children}</button>
   )
 }
@@ -158,47 +160,72 @@ function InputAgregar({ valor, onChange, onAgregar, placeholder, label }: { valo
   )
 }
 
-export default function OnboardingGuiado({ userId, onDone }: { userId: string; onDone: () => void }) {
-  const [paso, setPaso] = useState(0)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+// Marco de pantalla completa con barra de progreso (pasos 1-7).
+export function MarcoOnb({ paso, onAtras, children, pie }: { paso: number | null; onAtras?: () => void; children: ReactNode; pie: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--bg)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="mx-auto flex h-full w-full max-w-[480px] flex-col px-6 pb-6 pt-4">
+        {paso !== null && (
+          <div className="mb-5 flex flex-shrink-0 items-center gap-3.5">
+            {onAtras ? (
+              <button type="button" aria-label="Atrás" onClick={onAtras} className="flex items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'var(--card)' }}>
+                <ChevronLeft size={20} color="var(--text-1)" />
+              </button>
+            ) : <span style={{ width: 44 }} />}
+            <div className="grid flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${TOTAL_PASOS}, minmax(0, 1fr))` }}>
+              {Array.from({ length: TOTAL_PASOS }, (_, i) => <div key={i} style={{ height: 4, borderRadius: 2, background: i < paso ? 'var(--lime)' : 'var(--line)' }} />)}
+            </div>
+            <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{paso}/{TOTAL_PASOS}</span>
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-4">{children}</div>
+        <div className="flex flex-shrink-0 flex-col pt-2">{pie}</div>
+      </div>
+    </div>
+  )
+}
 
-  const [objetivos, setObjetivos] = useState<Set<string>>(new Set())
-  const [tipoIngreso, setTipoIngreso] = useState<TipoIngreso | null>(null)
-  const [salario, setSalario] = useState('')
-  const [frecuencia, setFrecuencia] = useState<'quincenal' | 'mensual'>('quincenal')
-  const [prestaciones, setPrestaciones] = useState(true)
-  const [banco, setBanco] = useState<string | null>(null)
-  const [bancoOtro, setBancoOtro] = useState('')
+// ----------------------------------------------------------------------
+// Las preguntas (pasos 0 a 6). No guarda nada: entrega los datos.
+// ----------------------------------------------------------------------
+export default function OnboardingGuiado({ inicial, onCompletar, onSaltar, onSalirInicio, textoFinal = 'Terminar', guardando, error, pasoInicial = 0, textoSaltar = 'Lo hago después' }: {
+  inicial?: DatosOnboarding
+  onCompletar: (datos: DatosOnboarding) => void
+  onSaltar: () => void
+  onSalirInicio?: () => void
+  textoFinal?: string
+  guardando?: boolean
+  error?: string | null
+  pasoInicial?: number
+  textoSaltar?: string
+}) {
+  const [paso, setPaso] = useState(pasoInicial)
+  const [d, setD] = useState<DatosOnboarding>(inicial ?? DATOS_VACIOS)
   const [busqueda, setBusqueda] = useState('')
-  const [cuentas, setCuentas] = useState<CuentaForm[]>([])
   const [nuevaCuenta, setNuevaCuenta] = useState('')
-  const [tarjeta, setTarjeta] = useState({ on: false, banco: '', cupo: '', debe: '', dia: '5' })
-  const [prestamo, setPrestamo] = useState({ on: false, entidad: '', debe: '', cuota: '' })
-  const [deboA, setDeboA] = useState({ on: false, quien: '', monto: '' })
-  const [meDeben, setMeDeben] = useState({ on: false, quien: '', monto: '' })
-  const [fijos, setFijos] = useState<FijoForm[]>(FIJOS_BASE)
   const [nuevoFijo, setNuevoFijo] = useState('')
+  const set = (p: Partial<DatosOnboarding>) => setD((x) => ({ ...x, ...p }))
 
-  const conNomina = tipoIngreso === 'nomina' || tipoIngreso === 'ambos'
-  const salarioNum = num(salario)
-  const bancoPrincipal = banco === 'Otro' ? bancoOtro.trim() || null : banco
+  const nomina = conNomina(d)
+  const salarioNum = num(d.salario)
+  const bancoPrincipal = bancoPrincipalDe(d)
+  const { tienes } = resumenOnboarding(d)
+  const cuentasMarcadas = d.cuentas.filter((c) => c.marcada)
+  const fijosMarcados = d.fijos.filter((f) => f.marcado)
+  const totalFijos = fijosMarcados.reduce((s, f) => s + num(f.monto), 0)
 
   // Al pasar a "Cuentas" se arma la lista sugerida alrededor del banco
   // principal (o se actualiza si lo cambió, sin perder saldos ya escritos).
   function prepararCuentas() {
-    const principal = (b: string): CuentaForm => ({ key: 'principal', nombre: b, tipo: tipoDeBanco(b), banco: b, marcada: true, saldo: '', principal: true })
-    if (cuentas.length) {
-      setCuentas((cs) => {
-        const otras = cs.filter((c) => c.key !== 'principal').map((c) => ({ ...c, principal: false }))
-        if (!bancoPrincipal) return otras
-        const ya = otras.find((c) => c.banco === bancoPrincipal)
-        if (ya) return otras.map((c) => (c === ya ? { ...c, principal: true, marcada: true } : c))
-        return [principal(bancoPrincipal), ...otras]
-      })
-      return
+    const principal = (b: string): CuentaOnb => ({ key: 'principal', nombre: b, tipo: tipoDeBanco(b), banco: b, marcada: true, saldo: '', principal: true })
+    if (d.cuentas.length) {
+      const otras = d.cuentas.filter((c) => c.key !== 'principal').map((c) => ({ ...c, principal: false }))
+      if (!bancoPrincipal) return set({ cuentas: otras })
+      const ya = otras.find((c) => c.banco === bancoPrincipal)
+      if (ya) return set({ cuentas: otras.map((c) => (c === ya ? { ...c, principal: true, marcada: true } : c)) })
+      return set({ cuentas: [principal(bancoPrincipal), ...otras] })
     }
-    const lista: CuentaForm[] = []
+    const lista: CuentaOnb[] = []
     if (bancoPrincipal) lista.push(principal(bancoPrincipal))
     lista.push({ key: 'efectivo', nombre: 'Efectivo', tipo: 'efectivo', banco: null, marcada: true, saldo: '' })
     for (const b of ['Nequi', 'Bancolombia', 'Daviplata', 'Nu']) {
@@ -206,135 +233,19 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
       lista.push({ key: b, nombre: b === 'Bancolombia' ? 'Bancolombia ahorros' : b, tipo: tipoDeBanco(b), banco: b, marcada: false, saldo: '' })
     }
     lista.push({ key: 'alcancia', nombre: 'Alcancía', tipo: 'monedero', banco: null, marcada: false, saldo: '' })
-    setCuentas(lista)
-  }
-
-  const cuentasMarcadas = cuentas.filter((c) => c.marcada)
-  const tienes = cuentasMarcadas.reduce((s, c) => s + num(c.saldo), 0)
-  const debes = (tarjeta.on ? num(tarjeta.debe) : 0) + (prestamo.on ? num(prestamo.debe) : 0) + (deboA.on ? num(deboA.monto) : 0)
-  const teDeben = meDeben.on ? num(meDeben.monto) : 0
-  const fijosMarcados = fijos.filter((f) => f.marcado)
-  const totalFijos = fijosMarcados.reduce((s, f) => s + num(f.monto), 0)
-
-  const proximas = useMemo(() => {
-    const hoy = new Date()
-    const base = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
-    const enMes = (dia: number) => {
-      const d = new Date(base.getFullYear(), base.getMonth(), Math.min(Math.max(dia, 1), 28))
-      if (d < base) d.setMonth(d.getMonth() + 1)
-      return d
-    }
-    const out: { fecha: Date; texto: string; monto: string; color: string }[] = []
-    for (const f of fijos) if (f.marcado && num(f.monto) > 0) out.push({ fecha: enMes(Number(f.dia) || 1), texto: f.nombre, monto: '−' + fmt(num(f.monto)), color: 'coral' })
-    if (tarjeta.on && num(tarjeta.debe) > 0) out.push({ fecha: enMes(Number(tarjeta.dia) || 5), texto: `Pago tarjeta ${tarjeta.banco}`.trim(), monto: 'Pendiente', color: 'coral' })
-    if (conNomina && salarioNum > 0) {
-      const pago = frecuencia === 'quincenal' ? salarioNum / 2 : salarioNum
-      out.push({ fecha: enMes(frecuencia === 'quincenal' ? 15 : 30), texto: frecuencia === 'quincenal' ? 'Quincena' : 'Nómina', monto: '+' + fmt(pago), color: 'lime' })
-      if (prestaciones) {
-        const p = pagosPrestaciones(salarioNum, base, new Date(base.getFullYear() + 1, base.getMonth(), base.getDate()))[0]
-        if (p) {
-          const [y, m, d] = p.fecha.split('-').map(Number)
-          const nombre = p.tipo === 'intereses_cesantias' ? 'Intereses de cesantías' : p.tipo === 'prima_junio' ? 'Prima de junio' : 'Prima de diciembre'
-          out.push({ fecha: new Date(y, m - 1, d), texto: nombre, monto: '≈ +' + fmt(p.monto), color: 'lime' })
-        }
-      }
-    }
-    return out.sort((a, b) => a.fecha.getTime() - b.fecha.getTime()).slice(0, 4)
-  }, [fijos, tarjeta, conNomina, salarioNum, frecuencia, prestaciones])
-
-  async function saltar() {
-    setGuardando(true)
-    await supabase.from('profiles').update({ onboarding_guiado_completado: true }).eq('id', userId)
-    setGuardando(false)
-    onDone()
-  }
-
-  async function guardarTodo() {
-    setGuardando(true)
-    setError(null)
-    try {
-      const hoy = todayLocal()
-      const nuevasCuentas: Record<string, unknown>[] = cuentasMarcadas.map((c) => ({
-        user_id: userId, tipo: c.tipo, nombre: c.nombre.trim() || 'Cuenta', saldo: num(c.saldo),
-        icono: ICONO_TIPO[c.tipo], color: COLOR_TIPO[c.tipo], four_x_mil: false, activa: true,
-        es_ahorro: c.tipo === 'monedero', banco: c.banco, moneda: 'COP',
-      }))
-      if (tarjeta.on) {
-        // En CashFlow la tarjeta guarda el cupo DISPONIBLE en `saldo`:
-        // lo que debes = cupo_total − saldo.
-        const debe = num(tarjeta.debe)
-        const cupo = Math.max(num(tarjeta.cupo), debe)
-        nuevasCuentas.push({
-          user_id: userId, tipo: 'tarjeta_credito', nombre: tarjeta.banco.trim() ? `Tarjeta ${tarjeta.banco.trim()}` : 'Tarjeta de crédito',
-          saldo: cupo - debe, cupo_total: cupo, icono: 'credit-card', color: 'coral', four_x_mil: false, activa: true,
-          banco: tarjeta.banco.trim() || null, dia_pago: Number(tarjeta.dia) || null, moneda: 'COP',
-        })
-      }
-      if (nuevasCuentas.length) {
-        const r = await supabase.from('cuentas').insert(nuevasCuentas)
-        if (r.error) throw r.error
-      }
-
-      const deudas: Record<string, unknown>[] = []
-      if (prestamo.on && num(prestamo.debe) > 0) deudas.push({
-        user_id: userId, tipo: 'deuda', subtipo: 'Préstamo bancario', nombre: prestamo.entidad.trim() ? `Crédito ${prestamo.entidad.trim()}` : 'Crédito',
-        entidad: prestamo.entidad.trim() || null, capital: num(prestamo.debe), tipo_interes: 'sin_interes', cuota_mensual: num(prestamo.cuota) || null,
-        fecha_inicio: hoy, estado: 'activa',
-      })
-      if (deboA.on && num(deboA.monto) > 0) deudas.push({
-        user_id: userId, tipo: 'deuda', subtipo: 'Préstamo con un tercero', nombre: deboA.quien.trim() ? `Le debo a ${deboA.quien.trim()}` : 'Deuda personal',
-        capital: num(deboA.monto), tipo_interes: 'sin_interes', fecha_inicio: hoy, estado: 'activa',
-      })
-      if (meDeben.on && num(meDeben.monto) > 0) deudas.push({
-        user_id: userId, tipo: 'credito', subtipo: 'Préstamo a un amigo o familiar', nombre: meDeben.quien.trim() ? `Me debe ${meDeben.quien.trim()}` : 'Me deben',
-        capital: num(meDeben.monto), tipo_interes: 'sin_interes', fecha_inicio: hoy, estado: 'activa',
-      })
-      if (deudas.length) {
-        const r = await supabase.from('deudas_creditos').insert(deudas)
-        if (r.error) throw r.error
-      }
-
-      const gastos = fijosMarcados.filter((f) => num(f.monto) > 0).map((f) => ({
-        user_id: userId, nombre: f.nombre, monto: num(f.monto), dia_mes: Math.min(Math.max(Number(f.dia) || 1, 1), 31),
-        frecuencia: 'mensual', icono: f.icono, activo: true, notif_dias_antes: 2,
-      }))
-      if (gastos.length) {
-        const r = await supabase.from('gastos_fijos').insert(gastos)
-        if (r.error) throw r.error
-      }
-
-      // "Nómina" como ingreso fijo: así lo detecta el motor de prima y
-      // cesantías (detectarSalarioMensual) y entra al flujo de caja.
-      if (conNomina && salarioNum > 0) {
-        const r = await supabase.from('ingresos_fijos').insert({
-          user_id: userId, nombre: 'Nómina', monto: frecuencia === 'quincenal' ? Math.round(salarioNum / 2) : salarioNum,
-          dia_mes: frecuencia === 'quincenal' ? 15 : 30, frecuencia, icono: 'cash', activo: true,
-        })
-        if (r.error) throw r.error
-      }
-
-      const r = await supabase.from('profiles').update({
-        objetivos: [...objetivos], tipo_ingreso: tipoIngreso, banco_principal: bancoPrincipal,
-        salario_mensual: conNomina && salarioNum > 0 ? salarioNum : null,
-        recibe_prestaciones: conNomina ? prestaciones : false,
-        onboarding_guiado_completado: true,
-      }).eq('id', userId)
-      if (r.error) throw r.error
-      setPaso(7)
-    } catch (e) {
-      setError((e as { message?: string }).message ?? 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
-    } finally {
-      setGuardando(false)
-    }
+    set({ cuentas: lista })
   }
 
   function siguiente() {
     if (paso === 3) prepararCuentas()
-    if (paso === 6) { void guardarTodo(); return }
+    if (paso === 6) { onCompletar(d); return }
     setPaso((p) => p + 1)
   }
+  function atras() {
+    if (paso === 0) onSalirInicio?.()
+    else setPaso((p) => p - 1)
+  }
 
-  // ---------- pantallas ----------
   let contenido: ReactNode = null
   let pie: ReactNode = null
 
@@ -342,6 +253,10 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
     const puntos: [string, string, string][] = [['1', 'Tu objetivo y cómo recibes la plata', 'lime'], ['2', 'Tu banco principal y tus cuentas', 'lavender'], ['3', 'Tus deudas y gastos fijos', 'coral']]
     contenido = (
       <div className="flex flex-1 flex-col justify-center gap-5">
+        <div className="flex items-center gap-2">
+          <span style={{ width: 10, height: 10, borderRadius: 5, background: 'var(--lime)' }} />
+          <span className="text-[18px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>CashFlow</span>
+        </div>
         <div className="flex items-center justify-center" style={{ width: 72, height: 72, borderRadius: 22, background: 'var(--lime-dim)' }}><TrendingUp size={34} color="var(--lime)" /></div>
         <h1 className="m-0 text-[36px] font-bold leading-[1.08]" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>Armemos tu CashFlow en 2 minutos</h1>
         <p className="m-0 text-[16px] leading-relaxed" style={{ color: 'var(--text-2)' }}>Te hacemos unas preguntas rápidas y la app arranca con tus cuentas, tu banco, tus deudas y hasta tu prima y cesantías ya calculadas.</p>
@@ -357,8 +272,11 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
     )
     pie = (
       <>
-        <Boton onClick={siguiente}>Empezar</Boton>
-        <button type="button" onClick={saltar} disabled={guardando} className="flex w-full items-center justify-center text-[14px]" style={{ height: 44, color: 'var(--text-2)' }}>Lo hago después</button>
+        <BotonOnb onClick={siguiente}>Empezar</BotonOnb>
+        <button type="button" onClick={onSaltar} disabled={guardando} className="flex w-full items-center justify-center text-[14px]" style={{ height: 44, color: 'var(--text-2)' }}>{textoSaltar}</button>
+        {onSalirInicio && (
+          <button type="button" onClick={onSalirInicio} className="flex w-full items-center justify-center text-[13px] font-bold" style={{ height: 36, color: 'var(--lime)' }}>¿Ya tienes cuenta? Inicia sesión</button>
+        )}
       </>
     )
   }
@@ -369,11 +287,11 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
         <Encabezado titulo="¿Para qué quieres CashFlow?" sub="Escoge uno o varios. Así te mostramos primero lo que más te sirve." />
         <div className="flex flex-col gap-2.5">
           {OBJETIVOS.map((o) => {
-            const on = objetivos.has(o.id)
+            const on = d.objetivos.includes(o.id)
             const Icon = o.icon
             return (
               <button key={o.id} type="button" aria-pressed={on}
-                onClick={() => setObjetivos((s) => { const n = new Set(s); if (n.has(o.id)) n.delete(o.id); else n.add(o.id); return n })}
+                onClick={() => set({ objetivos: on ? d.objetivos.filter((x) => x !== o.id) : [...d.objetivos, o.id] })}
                 className="flex items-center gap-3.5 p-4 text-left" style={{ ...CARD, background: on ? 'var(--lime-dim)' : 'var(--card)', borderColor: on ? 'var(--lime)' : 'var(--line)' }}>
                 <span className="flex flex-shrink-0 items-center justify-center" style={{ width: 40, height: 40, borderRadius: 12, background: vd(o.color) }}><Icon size={20} color={v(o.color)} /></span>
                 <span className="flex flex-1 flex-col gap-0.5">
@@ -387,7 +305,7 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
         </div>
       </>
     )
-    pie = <Boton onClick={siguiente} disabled={objetivos.size === 0}>Continuar</Boton>
+    pie = <BotonOnb onClick={siguiente} disabled={d.objetivos.length === 0}>Continuar</BotonOnb>
   }
 
   if (paso === 2) {
@@ -397,23 +315,23 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
         <Encabezado titulo="¿Cómo te entra la plata?" sub="Con esto calculamos tu flujo del mes, tu prima y tus cesantías." />
         <div className="grid grid-cols-2 gap-2">
           {opciones.map(([id, txt]) => {
-            const on = tipoIngreso === id
+            const on = d.tipoIngreso === id
             return (
-              <button key={id} type="button" aria-pressed={on} onClick={() => setTipoIngreso(id)} className="rounded-[14px] px-2 text-[14px]"
+              <button key={id} type="button" aria-pressed={on} onClick={() => set({ tipoIngreso: id })} className="rounded-[14px] px-2 text-[14px]"
                 style={{ minHeight: 48, fontWeight: on ? 700 : 600, background: on ? 'var(--lime)' : 'var(--card)', color: on ? 'var(--lime-text)' : 'var(--text-1)', border: on ? 'none' : '1px solid var(--line)' }}>{txt}</button>
             )
           })}
         </div>
-        {conNomina && (
+        {nomina && (
           <>
-            <CampoPlata label="Salario mensual" valor={salario} onChange={setSalario} grande />
+            <CampoPlata label="Salario mensual" valor={d.salario} onChange={(s) => set({ salario: s })} grande />
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px]" style={{ color: 'var(--text-2)' }}>¿Cada cuánto te pagan?</span>
               <div className="flex gap-2 rounded-[14px] p-1" style={{ background: 'var(--card)' }}>
                 {(['quincenal', 'mensual'] as const).map((f) => {
-                  const on = frecuencia === f
+                  const on = d.frecuencia === f
                   return (
-                    <button key={f} type="button" aria-pressed={on} onClick={() => setFrecuencia(f)} className="flex-1 rounded-[11px] text-[14px]"
+                    <button key={f} type="button" aria-pressed={on} onClick={() => set({ frecuencia: f })} className="flex-1 rounded-[11px] text-[14px]"
                       style={{ height: 40, background: on ? 'var(--card-2)' : 'transparent', color: on ? 'var(--text-1)' : 'var(--text-2)', fontWeight: on ? 600 : 500, border: on ? '1px solid var(--line)' : 'none' }}>
                       {f === 'quincenal' ? 'Quincenal · 15 y 30' : 'Mensual · día 30'}
                     </button>
@@ -424,9 +342,9 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
             <div className="flex flex-col gap-3 rounded-[18px] p-4" style={{ background: 'var(--lime-dim)', border: '1px solid var(--lime)' }}>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[14px] font-semibold" style={{ color: 'var(--text-1)' }}>Mi empresa me paga prima y cesantías</span>
-                <Switch on={prestaciones} onClick={() => setPrestaciones((p) => !p)} label="Recibo prima y cesantías" />
+                <Switch on={d.prestaciones} onClick={() => set({ prestaciones: !d.prestaciones })} label="Recibo prima y cesantías" />
               </div>
-              {prestaciones && salarioNum > 0 && (
+              {d.prestaciones && salarioNum > 0 && (
                 <div className="flex flex-col gap-2 text-[13px]">
                   <div className="flex justify-between gap-2"><span style={{ color: 'var(--text-2)' }}>Prima · 30 jun y 20 dic</span><span className="font-bold" style={{ color: 'var(--lime)' }}>≈ {fmt(salarioNum / 2)} c/u</span></div>
                   <div className="flex justify-between gap-2"><span style={{ color: 'var(--text-2)' }}>Intereses de cesantías · 31 ene</span><span className="font-bold" style={{ color: 'var(--lime)' }}>≈ {fmt(salarioNum * 0.12)}</span></div>
@@ -438,7 +356,7 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
         )}
       </>
     )
-    pie = <Boton onClick={siguiente} disabled={!tipoIngreso || (conNomina && salarioNum === 0)}>Continuar</Boton>
+    pie = <BotonOnb onClick={siguiente} disabled={!d.tipoIngreso || (nomina && salarioNum === 0)}>Continuar</BotonOnb>
   }
 
   if (paso === 3) {
@@ -446,16 +364,16 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
     const lista = q ? BANCOS.filter((b) => b.nombre.toLowerCase().includes(q)) : BANCOS
     contenido = (
       <>
-        <Encabezado titulo="¿Cuál es tu banco principal?" sub={conNomina ? 'Donde te llega la nómina. Ahí anotamos tus ingresos por defecto.' : 'El que más usas para recibir y pagar.'} />
+        <Encabezado titulo="¿Cuál es tu banco principal?" sub={nomina ? 'Donde te llega la nómina. Ahí anotamos tus ingresos por defecto.' : 'El que más usas para recibir y pagar.'} />
         <label className="flex items-center gap-2.5 rounded-[14px] px-3.5" style={{ height: 48, background: 'var(--card)', border: '1px solid var(--line)' }}>
           <Search size={18} color="var(--text-2)" />
           <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar banco" aria-label="Buscar banco" className="flex-1 bg-transparent text-[15px] outline-none" style={{ color: 'var(--text-1)' }} />
         </label>
         <div className="grid grid-cols-3 gap-2.5">
           {[...lista, { nombre: 'Otro', sigla: '+', color: '' }].map((b) => {
-            const on = banco === b.nombre
+            const on = d.banco === b.nombre
             return (
-              <button key={b.nombre} type="button" aria-pressed={on} onClick={() => setBanco(b.nombre)} className="flex flex-col items-center gap-2 px-1.5 py-3.5"
+              <button key={b.nombre} type="button" aria-pressed={on} onClick={() => set({ banco: b.nombre })} className="flex flex-col items-center gap-2 px-1.5 py-3.5"
                 style={{ ...CARD, borderRadius: 16, background: on ? 'var(--lime-dim)' : 'var(--card)', borderColor: on ? 'var(--lime)' : 'var(--line)' }}>
                 <span className="flex items-center justify-center text-[14px] font-bold" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--card-2)', color: b.color ? v(b.color) : 'var(--text-2)' }}>{b.sigla}</span>
                 <span className="text-center text-[12px] font-semibold leading-tight" style={{ color: 'var(--text-1)' }}>{b.nombre}</span>
@@ -463,24 +381,25 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
             )
           })}
         </div>
-        {banco === 'Otro' && <CampoTexto label="¿Cuál?" valor={bancoOtro} onChange={setBancoOtro} placeholder="Nombre del banco" />}
+        {d.banco === 'Otro' && <CampoTexto label="¿Cuál?" valor={d.bancoOtro} onChange={(s) => set({ bancoOtro: s })} placeholder="Nombre del banco" />}
         <div className="flex items-center gap-2.5 rounded-[14px] px-3.5 py-3" style={{ background: 'var(--card)' }}>
           <Info size={18} color="var(--lime)" />
           <span className="text-[13px]" style={{ color: 'var(--text-2)' }}>En el siguiente paso agregas tus otras cuentas.</span>
         </div>
       </>
     )
-    pie = <Boton onClick={siguiente} disabled={!bancoPrincipal}>{bancoPrincipal ? `Continuar con ${bancoPrincipal}` : 'Continuar'}</Boton>
+    pie = <BotonOnb onClick={siguiente} disabled={!bancoPrincipal}>{bancoPrincipal ? `Continuar con ${bancoPrincipal}` : 'Continuar'}</BotonOnb>
   }
 
   if (paso === 4) {
+    const setCuenta = (key: string, p: Partial<CuentaOnb>) => set({ cuentas: d.cuentas.map((x) => (x.key === key ? { ...x, ...p } : x)) })
     contenido = (
       <>
         <Encabezado titulo="¿Qué cuentas usas?" sub="Marca las que tienes y ponles cuánto hay hoy. Lo puedes cambiar después." />
         <div className="flex flex-col gap-2.5">
-          {cuentas.map((c) => (
+          {d.cuentas.map((c) => (
             <div key={c.key} className="flex items-center gap-3 px-3.5 py-3" style={{ ...CARD, borderColor: c.marcada ? 'var(--lime)' : 'var(--line)', minHeight: 66 }}>
-              <button type="button" aria-pressed={c.marcada} onClick={() => setCuentas((cs) => cs.map((x) => (x.key === c.key ? { ...x, marcada: !x.marcada } : x)))} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <button type="button" aria-pressed={c.marcada} onClick={() => setCuenta(c.key, { marcada: !c.marcada })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                 <Marca on={c.marcada} cuadrado />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex flex-wrap items-center gap-1.5 text-[15px] font-semibold" style={{ color: 'var(--text-1)' }}>
@@ -492,7 +411,7 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
               </button>
               {c.marcada && (
                 <input inputMode="numeric" aria-label={`Saldo de ${c.nombre}`} placeholder="$ 0" value={c.saldo ? '$ ' + conPuntos(c.saldo) : ''}
-                  onChange={(e) => { const s = soloDigitos(e.target.value); setCuentas((cs) => cs.map((x) => (x.key === c.key ? { ...x, saldo: s } : x))) }}
+                  onChange={(e) => setCuenta(c.key, { saldo: soloDigitos(e.target.value) })}
                   className="flex-shrink-0 rounded-[11px] px-2.5 text-right text-[14px] font-bold outline-none" style={{ width: 118, height: 40, background: 'var(--card-2)', border: '1px solid var(--line)', color: 'var(--text-1)' }} />
               )}
             </div>
@@ -500,7 +419,7 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
           <InputAgregar valor={nuevaCuenta} onChange={setNuevaCuenta} placeholder="Otra cuenta (ej. Davivienda)" label="Agregar cuenta" onAgregar={() => {
             const nombre = nuevaCuenta.trim()
             const b = BANCOS.find((x) => nombre.toLowerCase().includes(x.nombre.toLowerCase()))?.nombre ?? null
-            setCuentas((cs) => [...cs, { key: `n${Date.now()}`, nombre, tipo: b ? tipoDeBanco(b) : 'cuenta_bancaria', banco: b, marcada: true, saldo: '' }])
+            set({ cuentas: [...d.cuentas, { key: `n${Date.now()}`, nombre, tipo: b ? tipoDeBanco(b) : 'cuenta_bancaria', banco: b, marcada: true, saldo: '' }] })
             setNuevaCuenta('')
           }} />
         </div>
@@ -512,67 +431,72 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
           <span className="text-[13px]" style={{ color: 'var(--text-2)' }}>Tienes en total</span>
           <span className="text-[22px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>{fmt(tienes)}</span>
         </div>
-        <Boton onClick={siguiente} disabled={cuentasMarcadas.length === 0}>Continuar</Boton>
+        <BotonOnb onClick={siguiente} disabled={cuentasMarcadas.length === 0}>Continuar</BotonOnb>
       </>
     )
   }
 
   if (paso === 5) {
-    const ninguna = !tarjeta.on && !prestamo.on && !deboA.on && !meDeben.on
+    const ninguna = !d.tarjeta.on && !d.prestamo.on && !d.deboA.on && !d.meDeben.on
+    const tj = (p: Partial<DatosOnboarding['tarjeta']>) => set({ tarjeta: { ...d.tarjeta, ...p } })
+    const pr = (p: Partial<DatosOnboarding['prestamo']>) => set({ prestamo: { ...d.prestamo, ...p } })
+    const da = (p: Partial<DatosOnboarding['deboA']>) => set({ deboA: { ...d.deboA, ...p } })
+    const md = (p: Partial<DatosOnboarding['meDeben']>) => set({ meDeben: { ...d.meDeben, ...p } })
     contenido = (
       <>
         <Encabezado titulo="¿Debes o te deben plata?" sub="Prende lo que aplique. Así tu patrimonio sale real desde el día uno." />
         <div className="flex flex-col gap-2.5">
-          <FilaDeuda icon={<CreditCard size={18} color="var(--coral)" />} color="coral" titulo="Tarjeta de crédito" desc="Lo que debes hoy y el día de pago" on={tarjeta.on}
-            onToggle={() => setTarjeta((t) => ({ ...t, on: !t.on, banco: t.banco || bancoPrincipal || '' }))}>
+          <FilaDeuda icon={<CreditCard size={18} color="var(--coral)" />} color="coral" titulo="Tarjeta de crédito" desc="Lo que debes hoy y el día de pago" on={d.tarjeta.on}
+            onToggle={() => tj({ on: !d.tarjeta.on, banco: d.tarjeta.banco || bancoPrincipal || '' })}>
             <div className="flex gap-2">
-              <CampoTexto label="Banco" valor={tarjeta.banco} onChange={(s) => setTarjeta((t) => ({ ...t, banco: s }))} />
-              <CampoTexto label="Día de pago" numerico valor={tarjeta.dia} onChange={(s) => setTarjeta((t) => ({ ...t, dia: soloDigitos(s).slice(0, 2) }))} />
+              <CampoTexto label="Banco" valor={d.tarjeta.banco} onChange={(s) => tj({ banco: s })} />
+              <CampoTexto label="Día de pago" numerico valor={d.tarjeta.dia} onChange={(s) => tj({ dia: soloDigitos(s).slice(0, 2) })} />
             </div>
             <div className="flex gap-2">
-              <CampoPlata label="Cupo total" valor={tarjeta.cupo} onChange={(s) => setTarjeta((t) => ({ ...t, cupo: s }))} />
-              <CampoPlata label="Debes hoy" valor={tarjeta.debe} onChange={(s) => setTarjeta((t) => ({ ...t, debe: s }))} color="coral" />
-            </div>
-          </FilaDeuda>
-          <FilaDeuda icon={<Landmark size={18} color="var(--yellow)" />} color="yellow" titulo="Crédito o préstamo" desc="Libre inversión, vehículo, vivienda…" on={prestamo.on} onToggle={() => setPrestamo((p) => ({ ...p, on: !p.on }))}>
-            <CampoTexto label="¿Con qué entidad?" valor={prestamo.entidad} onChange={(s) => setPrestamo((p) => ({ ...p, entidad: s }))} />
-            <div className="flex gap-2">
-              <CampoPlata label="Debes hoy" valor={prestamo.debe} onChange={(s) => setPrestamo((p) => ({ ...p, debe: s }))} color="coral" />
-              <CampoPlata label="Cuota mensual" valor={prestamo.cuota} onChange={(s) => setPrestamo((p) => ({ ...p, cuota: s }))} />
+              <CampoPlata label="Cupo total" valor={d.tarjeta.cupo} onChange={(s) => tj({ cupo: s })} />
+              <CampoPlata label="Debes hoy" valor={d.tarjeta.debe} onChange={(s) => tj({ debe: s })} color="coral" />
             </div>
           </FilaDeuda>
-          <FilaDeuda icon={<UserMinus size={18} color="var(--lavender)" />} color="lavender" titulo="Le debo a alguien" desc="Familia, amigos" on={deboA.on} onToggle={() => setDeboA((d) => ({ ...d, on: !d.on }))}>
+          <FilaDeuda icon={<Landmark size={18} color="var(--yellow)" />} color="yellow" titulo="Crédito o préstamo" desc="Libre inversión, vehículo, vivienda…" on={d.prestamo.on} onToggle={() => pr({ on: !d.prestamo.on })}>
+            <CampoTexto label="¿Con qué entidad?" valor={d.prestamo.entidad} onChange={(s) => pr({ entidad: s })} />
             <div className="flex gap-2">
-              <CampoTexto label="¿A quién?" valor={deboA.quien} onChange={(s) => setDeboA((d) => ({ ...d, quien: s }))} />
-              <CampoPlata label="¿Cuánto?" valor={deboA.monto} onChange={(s) => setDeboA((d) => ({ ...d, monto: s }))} color="coral" />
+              <CampoPlata label="Debes hoy" valor={d.prestamo.debe} onChange={(s) => pr({ debe: s })} color="coral" />
+              <CampoPlata label="Cuota mensual" valor={d.prestamo.cuota} onChange={(s) => pr({ cuota: s })} />
             </div>
           </FilaDeuda>
-          <FilaDeuda icon={<UserPlus size={18} color="var(--lime)" />} color="lime" titulo="Me deben" desc="Plata que prestaste" on={meDeben.on} onToggle={() => setMeDeben((d) => ({ ...d, on: !d.on }))}>
+          <FilaDeuda icon={<UserMinus size={18} color="var(--lavender)" />} color="lavender" titulo="Le debo a alguien" desc="Familia, amigos" on={d.deboA.on} onToggle={() => da({ on: !d.deboA.on })}>
             <div className="flex gap-2">
-              <CampoTexto label="¿Quién?" valor={meDeben.quien} onChange={(s) => setMeDeben((d) => ({ ...d, quien: s }))} />
-              <CampoPlata label="¿Cuánto?" valor={meDeben.monto} onChange={(s) => setMeDeben((d) => ({ ...d, monto: s }))} color="lime" />
+              <CampoTexto label="¿A quién?" valor={d.deboA.quien} onChange={(s) => da({ quien: s })} />
+              <CampoPlata label="¿Cuánto?" valor={d.deboA.monto} onChange={(s) => da({ monto: s })} color="coral" />
+            </div>
+          </FilaDeuda>
+          <FilaDeuda icon={<UserPlus size={18} color="var(--lime)" />} color="lime" titulo="Me deben" desc="Plata que prestaste" on={d.meDeben.on} onToggle={() => md({ on: !d.meDeben.on })}>
+            <div className="flex gap-2">
+              <CampoTexto label="¿Quién?" valor={d.meDeben.quien} onChange={(s) => md({ quien: s })} />
+              <CampoPlata label="¿Cuánto?" valor={d.meDeben.monto} onChange={(s) => md({ monto: s })} color="lime" />
             </div>
           </FilaDeuda>
         </div>
       </>
     )
-    pie = <Boton onClick={siguiente}>{ninguna ? 'No tengo deudas' : 'Continuar'}</Boton>
+    pie = <BotonOnb onClick={siguiente}>{ninguna ? 'No tengo deudas' : 'Continuar'}</BotonOnb>
   }
 
   if (paso === 6) {
     const libre = salarioNum - totalFijos
+    const setFijo = (nombre: string, p: Partial<FijoOnb>) => set({ fijos: d.fijos.map((x) => (x.nombre === nombre ? { ...x, ...p } : x)) })
     contenido = (
       <>
         <Encabezado titulo="¿Qué pagas todos los meses?" sub="Te recordamos cada pago antes de la fecha." />
         <div className="flex flex-wrap gap-2">
-          {fijos.map((f, i) => (
-            <button key={f.nombre} type="button" aria-pressed={f.marcado} onClick={() => setFijos((fs) => fs.map((x, j) => (j === i ? { ...x, marcado: !x.marcado } : x)))} className="rounded-full px-3.5 text-[13px]"
+          {d.fijos.map((f) => (
+            <button key={f.nombre} type="button" aria-pressed={f.marcado} onClick={() => setFijo(f.nombre, { marcado: !f.marcado })} className="rounded-full px-3.5 text-[13px]"
               style={{ height: 40, background: f.marcado ? 'var(--lime)' : 'var(--card)', color: f.marcado ? 'var(--lime-text)' : 'var(--text-1)', fontWeight: f.marcado ? 700 : 600, border: f.marcado ? 'none' : '1px solid var(--line)' }}>{f.nombre}</button>
           ))}
         </div>
         <InputAgregar valor={nuevoFijo} onChange={setNuevoFijo} placeholder="Otro pago fijo" label="Agregar pago fijo" onAgregar={() => {
           const nombre = nuevoFijo.trim()
-          if (!fijos.some((f) => f.nombre.toLowerCase() === nombre.toLowerCase())) setFijos((fs) => [...fs, { nombre, icono: 'dots', marcado: true, monto: '', dia: '1' }])
+          if (!d.fijos.some((f) => f.nombre.toLowerCase() === nombre.toLowerCase())) set({ fijos: [...d.fijos, { nombre, icono: 'dots', marcado: true, monto: '', dia: '1' }] })
           setNuevoFijo('')
         }} />
         {fijosMarcados.length > 0 && (
@@ -581,12 +505,10 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
               <div key={f.nombre} className="flex items-center gap-2 px-4 py-3" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-semibold" style={{ color: 'var(--text-1)' }}>{f.nombre}</span>
                 <label className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-2)' }}>Día
-                  <input inputMode="numeric" value={f.dia} aria-label={`Día de pago de ${f.nombre}`}
-                    onChange={(e) => { const d = soloDigitos(e.target.value).slice(0, 2); setFijos((fs) => fs.map((x) => (x.nombre === f.nombre ? { ...x, dia: d } : x))) }}
+                  <input inputMode="numeric" value={f.dia} aria-label={`Día de pago de ${f.nombre}`} onChange={(e) => setFijo(f.nombre, { dia: soloDigitos(e.target.value).slice(0, 2) })}
                     className="rounded-lg text-center text-[13px] font-semibold outline-none" style={{ width: 38, height: 36, background: 'var(--card-2)', border: '1px solid var(--line)', color: 'var(--text-1)' }} />
                 </label>
-                <input inputMode="numeric" placeholder="$ 0" aria-label={`Valor de ${f.nombre}`} value={f.monto ? '$ ' + conPuntos(f.monto) : ''}
-                  onChange={(e) => { const s = soloDigitos(e.target.value); setFijos((fs) => fs.map((x) => (x.nombre === f.nombre ? { ...x, monto: s } : x))) }}
+                <input inputMode="numeric" placeholder="$ 0" aria-label={`Valor de ${f.nombre}`} value={f.monto ? '$ ' + conPuntos(f.monto) : ''} onChange={(e) => setFijo(f.nombre, { monto: soloDigitos(e.target.value) })}
                   className="flex-shrink-0 rounded-[11px] px-2.5 text-right text-[14px] font-bold outline-none" style={{ width: 112, height: 36, background: 'var(--card-2)', border: '1px solid var(--line)', color: 'var(--text-1)' }} />
               </div>
             ))}
@@ -597,7 +519,7 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
             <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>Fijos al mes</span>
             <span className="text-[20px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--coral)' }}>{fmt(totalFijos)}</span>
           </div>
-          {conNomina && salarioNum > 0 && (
+          {nomina && salarioNum > 0 && (
             <div className="flex flex-col gap-1 rounded-2xl p-3.5" style={{ background: 'var(--card)' }}>
               <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>Te quedan libres</span>
               <span className="text-[20px] font-bold" style={{ fontFamily: DISPLAY, color: libre >= 0 ? 'var(--lime)' : 'var(--coral)' }}>{fmt(libre)}</span>
@@ -607,81 +529,119 @@ export default function OnboardingGuiado({ userId, onDone }: { userId: string; o
         {error && <p className="m-0 rounded-xl p-3 text-[13px]" style={{ background: 'var(--coral-dim)', color: 'var(--coral)' }}>{error}</p>}
       </>
     )
-    pie = <Boton onClick={siguiente} disabled={guardando}>{guardando ? 'Guardando…' : 'Terminar'}</Boton>
-  }
-
-  if (paso === 7) {
-    const patrimonio = tienes + teDeben - debes
-    const nDeudas = [tarjeta.on, prestamo.on, deboA.on, meDeben.on].filter(Boolean).length
-    const resumen: [number, string][] = [[cuentasMarcadas.length, 'cuentas'], [nDeudas, 'deudas'], [fijosMarcados.filter((f) => num(f.monto) > 0).length, 'pagos fijos']]
-    contenido = (
-      <>
-        <div className="flex flex-col gap-2">
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: 'var(--lime)' }}><Sparkles size={14} /> Listo</span>
-          <h1 className="m-0 text-[30px] font-bold leading-[1.1]" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>Tu CashFlow ya arrancó con tus datos</h1>
-        </div>
-        <div className="flex flex-col gap-3 rounded-[22px] p-[18px]" style={{ background: 'var(--card-lime)', color: 'var(--lime-text)' }}>
-          <span className="text-[13px] font-semibold">Patrimonio neto</span>
-          <span className="text-[34px] font-bold leading-none" style={{ fontFamily: DISPLAY }}>{fmt(patrimonio)}</span>
-          <div className="grid grid-cols-3 gap-2 text-[12px]">
-            <div className="flex flex-col gap-0.5"><span>Tienes</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-pos)' }}>{fmt(tienes)}</span></div>
-            <div className="flex flex-col gap-0.5"><span>Te deben</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-pos)' }}>{fmt(teDeben)}</span></div>
-            <div className="flex flex-col gap-0.5"><span>Debes</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-neg)' }}>{fmt(debes)}</span></div>
-          </div>
-        </div>
-        {proximas.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[13px]" style={{ color: 'var(--text-2)' }}>Próximas fechas</span>
-            <div className="flex flex-col overflow-hidden" style={{ ...CARD, borderWidth: 1 }}>
-              {proximas.map((p, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
-                  <span className="flex w-10 flex-col text-center">
-                    <span className="text-[15px] font-bold" style={{ color: 'var(--text-1)' }}>{p.fecha.getDate()}</span>
-                    <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{MESES[p.fecha.getMonth()]}</span>
-                  </span>
-                  <span className="flex-1 text-[14px]" style={{ color: 'var(--text-1)' }}>{p.texto}</span>
-                  <span className="text-[14px] font-bold" style={{ color: v(p.color) }}>{p.monto}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="grid grid-cols-3 gap-2">
-          {resumen.map(([n, t]) => (
-            <div key={t} className="flex flex-col gap-0.5 rounded-[14px] p-3" style={{ background: 'var(--card)' }}>
-              <span className="text-[20px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>{n}</span>
-              <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{t}</span>
-            </div>
-          ))}
-        </div>
-      </>
-    )
-    pie = <Boton onClick={onDone}>Entrar a CashFlow</Boton>
+    pie = <BotonOnb onClick={siguiente} disabled={guardando}>{guardando ? 'Guardando…' : textoFinal}</BotonOnb>
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--bg)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className="mx-auto flex h-full w-full max-w-[480px] flex-col px-6 pb-6 pt-4">
-        {paso >= 1 && paso <= 6 && (
-          <div className="mb-5 flex flex-shrink-0 items-center gap-3.5">
-            <button type="button" aria-label="Atrás" onClick={() => setPaso((p) => p - 1)} className="flex items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'var(--card)' }}>
-              <ChevronLeft size={20} color="var(--text-1)" />
-            </button>
-            <div className="grid flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${TOTAL_PASOS}, minmax(0, 1fr))` }}>
-              {Array.from({ length: TOTAL_PASOS }, (_, i) => <div key={i} style={{ height: 4, borderRadius: 2, background: i < paso ? 'var(--lime)' : 'var(--line)' }} />)}
-            </div>
-            <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{paso}/{TOTAL_PASOS}</span>
-          </div>
-        )}
-        {paso === 0 && (
-          <div className="flex flex-shrink-0 items-center gap-2 pt-6">
-            <span style={{ width: 10, height: 10, borderRadius: 5, background: 'var(--lime)' }} />
-            <span className="text-[18px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>CashFlow</span>
-          </div>
-        )}
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-4">{contenido}</div>
-        <div className="flex flex-shrink-0 flex-col pt-2">{pie}</div>
+    <MarcoOnb paso={paso >= 1 ? paso : null} onAtras={paso >= 1 ? atras : undefined} pie={pie}>
+      {contenido}
+    </MarcoOnb>
+  )
+}
+
+// ----------------------------------------------------------------------
+// Pantalla final: patrimonio neto y próximas fechas.
+// ----------------------------------------------------------------------
+export function OnboardingListo({ datos, onEntrar }: { datos: DatosOnboarding; onEntrar: () => void }) {
+  const r = resumenOnboarding(datos)
+  const proximas = proximasFechas(datos)
+  const resumen: [number, string][] = [[r.nCuentas, 'cuentas'], [r.nDeudas, 'deudas'], [r.nFijos, 'pagos fijos']]
+  return (
+    <MarcoOnb paso={null} pie={<BotonOnb onClick={onEntrar}>Entrar a CashFlow</BotonOnb>}>
+      <div className="flex flex-col gap-2 pt-6">
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: 'var(--lime)' }}><Sparkles size={14} /> Listo</span>
+        <h1 className="m-0 text-[30px] font-bold leading-[1.1]" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>Tu CashFlow ya arrancó con tus datos</h1>
       </div>
-    </div>
+      <div className="flex flex-col gap-3 rounded-[22px] p-[18px]" style={{ background: 'var(--card-lime)', color: 'var(--lime-text)' }}>
+        <span className="text-[13px] font-semibold">Patrimonio neto</span>
+        <span className="text-[34px] font-bold leading-none" style={{ fontFamily: DISPLAY }}>{fmt(r.patrimonio)}</span>
+        <div className="grid grid-cols-3 gap-2 text-[12px]">
+          <div className="flex flex-col gap-0.5"><span>Tienes</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-pos)' }}>{fmt(r.tienes)}</span></div>
+          <div className="flex flex-col gap-0.5"><span>Te deben</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-pos)' }}>{fmt(r.teDeben)}</span></div>
+          <div className="flex flex-col gap-0.5"><span>Debes</span><span className="text-[14px] font-bold" style={{ color: 'var(--lime-neg)' }}>{fmt(r.debes)}</span></div>
+        </div>
+      </div>
+      {proximas.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[13px]" style={{ color: 'var(--text-2)' }}>Próximas fechas</span>
+          <div className="flex flex-col overflow-hidden" style={{ ...CARD, borderWidth: 1 }}>
+            {proximas.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                <span className="flex w-10 flex-col text-center">
+                  <span className="text-[15px] font-bold" style={{ color: 'var(--text-1)' }}>{p.fecha.getDate()}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{MESES[p.fecha.getMonth()]}</span>
+                </span>
+                <span className="flex-1 text-[14px]" style={{ color: 'var(--text-1)' }}>{p.texto}</span>
+                <span className="text-[14px] font-bold" style={{ color: v(p.color) }}>{p.monto}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        {resumen.map(([n, t]) => (
+          <div key={t} className="flex flex-col gap-0.5 rounded-[14px] p-3" style={{ background: 'var(--card)' }}>
+            <span className="text-[20px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>{n}</span>
+            <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{t}</span>
+          </div>
+        ))}
+      </div>
+    </MarcoOnb>
+  )
+}
+
+// ----------------------------------------------------------------------
+// Para AppShell: si hay datos pendientes del registro los aplica; si no,
+// hace las preguntas. Al final muestra la pantalla "Listo".
+// ----------------------------------------------------------------------
+export function OnboardingFlujo({ userId, pendiente, onDone }: { userId: string; pendiente: DatosOnboarding | null; onDone: () => void }) {
+  const [datos, setDatos] = useState<DatosOnboarding | null>(pendiente)
+  const [aplicado, setAplicado] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
+
+  async function aplicar(d: DatosOnboarding) {
+    setDatos(d)
+    setGuardando(true)
+    setError(null)
+    try {
+      await aplicarOnboarding(userId, d)
+      borrarPendiente()
+      setAplicado(true)
+    } catch (e) {
+      setError((e as { message?: string }).message ?? 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  // Datos que vienen del registro: se aplican apenas hay sesión.
+  useEffect(() => {
+    if (pendiente) void aplicar(pendiente)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (aplicado && datos) return <OnboardingListo datos={datos} onEntrar={onDone} />
+
+  if (pendiente) {
+    return (
+      <MarcoOnb paso={null} pie={error ? <BotonOnb onClick={() => void aplicar(pendiente)} disabled={guardando}>{guardando ? 'Guardando…' : 'Intentar de nuevo'}</BotonOnb> : null}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <div className="flex items-center justify-center" style={{ width: 72, height: 72, borderRadius: 22, background: 'var(--lime-dim)' }}><Sparkles size={32} color="var(--lime)" /></div>
+          <h1 className="m-0 text-[24px] font-bold" style={{ fontFamily: DISPLAY, color: 'var(--text-1)' }}>{error ? 'No pudimos terminar' : 'Armando tu CashFlow…'}</h1>
+          <p className="m-0 text-[14px]" style={{ color: error ? 'var(--coral)' : 'var(--text-2)' }}>{error ?? 'Creando tus cuentas, deudas y pagos fijos.'}</p>
+        </div>
+      </MarcoOnb>
+    )
+  }
+
+  return (
+    <OnboardingGuiado
+      inicial={datos ?? undefined}
+      onCompletar={(d) => void aplicar(d)}
+      onSaltar={async () => { await marcarOnboardingSaltado(userId); onDone() }}
+      guardando={guardando}
+      error={error}
+    />
   )
 }
