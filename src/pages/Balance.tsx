@@ -3,7 +3,7 @@ import { Plus, MoreHorizontal } from 'lucide-react'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { useAuth } from '../lib/AuthContext'
 import Avatar from '../components/Avatar'
-import { ICONS, COLORS } from './Cuentas'
+import { ICONS } from './Cuentas'
 import { parseLocalDate } from '../lib/date'
 import { FREE_LIMITS } from '../lib/pro'
 import { useIdioma } from '../lib/IdiomaContext'
@@ -55,12 +55,9 @@ export default function Balance() {
     ingresosFijos, gastosFijos, metas, categorias, transacciones, loading, esPro,
     totalIngresosFijos, totalGastosFijos, totalAporteMetas, disponibleLibre,
   } = useFinanzas()
-  // El ícono de cada fijo toma el color de su categoría, así no salen todos
-  // del mismo color (verde los ingresos, rojo los gastos) y se distinguen.
-  const colorDeCategoria = (categoriaId: string | null, porDefecto: string) => {
-    const col = COLORS[categorias.find((c) => c.id === categoriaId)?.color ?? ''] ?? COLORS[porDefecto]
-    return { background: col.dim, color: col.fg }
-  }
+  // Ícono del fijo = el de su categoría (así los viejos con la casita por
+  // defecto también se distinguen); el color es el de la sección.
+  const iconoDe = (categoriaId: string | null, propio: string) => ICONS[categorias.find((c) => c.id === categoriaId)?.icono ?? ''] ?? ICONS[propio] ?? MoreHorizontal
 
   const total = totalIngresosFijos || 1
   const gasPct = Math.min(Math.max(totalGastosFijos / total, 0), 1)
@@ -126,7 +123,7 @@ export default function Balance() {
       <SectionHead title={t('seccion_ingresos_fijos')} onAdd={() => navigate('/balance/nuevo?tipo=ingreso_fijo')} contador={!esPro ? `${ingresosFijos.length}/${FREE_LIMITS.maxIngresosFijos} Free` : undefined} />
       {!loading && ingresosFijos.length === 0 && <Empty>{t('balance_vacio_ingresos')}</Empty>}
       {ingresosFijos.map((i) => {
-        const Icon = ICONS[i.icono] ?? MoreHorizontal
+        const Icon = iconoDe(i.categoria_id, i.icono)
         const ciclo = FREC_DIAS[i.frecuencia] ?? 30
         const cortePagos = new Date()
         cortePagos.setDate(cortePagos.getDate() - ciclo)
@@ -144,7 +141,7 @@ export default function Balance() {
         const atrasado = !recibido && !recibidoParcial && ultimoCobro !== null
         return (
           <button key={i.id} onClick={() => navigate(`/balance/${i.id}/editar`)} className="mb-2.5 flex w-full items-center gap-3 rounded-2xl p-3.5 text-left" style={{ background: 'var(--card)' }}>
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={colorDeCategoria(i.categoria_id, 'lime')}>
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--lime-dim)', color: 'var(--lime)' }}>
               <Icon size={17} />
             </div>
             <div className="min-w-0 flex-1">
@@ -177,7 +174,7 @@ export default function Balance() {
       <SectionHead title={t('seccion_gastos_fijos')} onAdd={() => navigate('/balance/nuevo?tipo=gasto_fijo')} contador={!esPro ? `${gastosFijos.length}/${FREE_LIMITS.maxGastosFijos} Free` : undefined} />
       {!loading && gastosFijos.length === 0 && <Empty>{t('balance_vacio_gastos')}</Empty>}
       {gastosFijos.map((g) => {
-        const Icon = ICONS[g.icono] ?? MoreHorizontal
+        const Icon = iconoDe(g.categoria_id, g.icono)
         const ciclo = FREC_DIAS[g.frecuencia] ?? 30
         const cortePagos = new Date()
         cortePagos.setDate(cortePagos.getDate() - ciclo)
@@ -207,7 +204,7 @@ export default function Balance() {
         const vencido = !pagado && !pagadoParcial && ultimoPago !== null
         return (
           <button key={g.id} onClick={() => navigate(`/balance/${g.id}/editar`)} className="mb-2.5 flex w-full items-center gap-3 rounded-2xl p-3.5 text-left" style={{ background: 'var(--card)' }}>
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={colorDeCategoria(g.categoria_id, 'coral')}>
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--coral-dim)', color: 'var(--coral)' }}>
               <Icon size={17} />
             </div>
             <div className="min-w-0 flex-1">

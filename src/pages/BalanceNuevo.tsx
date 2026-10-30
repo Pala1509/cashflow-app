@@ -8,7 +8,6 @@ import { useFinanzas } from '../hooks/useFinanzas'
 import { useProDuo } from '../hooks/useProDuo'
 import { FREE_LIMITS } from '../lib/pro'
 import ProPaywallSheet from '../components/ProPaywallSheet'
-import IconoPicker from '../components/IconoPicker'
 import { sortCategorias } from '../lib/categorias'
 import { ICONS, COLORS, GRUPOS } from './Cuentas'
 import type { FrecuenciaFija } from '../lib/database.types'
@@ -75,10 +74,9 @@ export default function BalanceNuevo() {
   const [monto, setMonto] = useState('')
   const [frecuencia, setFrecuencia] = useState<FrecuenciaFija>('mensual')
   const [categoriaId, setCategoriaId] = useState<string | null>(null)
-  // Ícono propio: por defecto toma el de la categoría; si la persona escoge
-  // uno a mano, ya no se pisa al cambiar de categoría.
+  // El ícono del fijo es el de su categoría (no se escoge aparte); el color
+  // lo pone la sección donde se muestra (verde ingresos, coral gastos).
   const [icono, setIcono] = useState<string | null>(null)
-  const [iconoManual, setIconoManual] = useState(false)
   const [diaMes, setDiaMes] = useState('1')
   const [notifActivo, setNotifActivo] = useState(false)
   const [notifDiasAntes, setNotifDiasAntes] = useState('2')
@@ -101,7 +99,6 @@ export default function BalanceNuevo() {
       setFrecuencia(registroExistente.frecuencia)
       setCategoriaId(registroExistente.categoria_id)
       setIcono(registroExistente.icono ?? null)
-      setIconoManual(Boolean(registroExistente.icono))
       setDiaMes(String(registroExistente.dia_mes))
       if ('notif_dias_antes' in registroExistente) {
         setNotifActivo(registroExistente.notif_dias_antes !== null)
@@ -287,7 +284,7 @@ export default function BalanceNuevo() {
                           return (
                             <button
                               key={c.id}
-                              onClick={() => { setCategoriaId(c.id); if (!iconoManual && c.icono) setIcono(c.icono) }}
+                              onClick={() => { setCategoriaId(c.id); if (c.icono) setIcono(c.icono) }}
                               className="flex flex-col items-center gap-1.5 text-center text-[9.5px]"
                               style={{ color: sel ? accent : 'var(--text-2)' }}
                             >
@@ -318,7 +315,7 @@ export default function BalanceNuevo() {
                           return (
                             <button
                               key={c.id}
-                              onClick={() => { setCategoriaId(c.id); if (!iconoManual && c.icono) setIcono(c.icono) }}
+                              onClick={() => { setCategoriaId(c.id); if (c.icono) setIcono(c.icono) }}
                               className="flex flex-col items-center gap-1.5 text-center text-[9.5px]"
                               style={{ color: sel ? accent : 'var(--text-2)' }}
                             >
@@ -333,11 +330,6 @@ export default function BalanceNuevo() {
                     </div>
                   )
                 })()}
-
-                <FieldLabel>{t('bn_icono')}</FieldLabel>
-                <div className="mb-4">
-                  <IconoPicker valor={icono} color={accent} onChange={(k) => { setIcono(k); setIconoManual(true) }} />
-                </div>
               </>
             )}
 
