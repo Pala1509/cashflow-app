@@ -161,7 +161,7 @@ function InputAgregar({ valor, onChange, onAgregar, placeholder, label }: { valo
 }
 
 // Marco de pantalla completa con barra de progreso (pasos 1-7).
-export function MarcoOnb({ paso, onAtras, children, pie }: { paso: number | null; onAtras?: () => void; children: ReactNode; pie: ReactNode }) {
+export function MarcoOnb({ paso, onAtras, onYaTengoCuenta, children, pie }: { paso: number | null; onAtras?: () => void; onYaTengoCuenta?: () => void; children: ReactNode; pie: ReactNode }) {
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--bg)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="mx-auto flex h-full w-full max-w-[480px] flex-col px-6 pb-6 pt-4">
@@ -176,6 +176,11 @@ export function MarcoOnb({ paso, onAtras, children, pie }: { paso: number | null
               {Array.from({ length: TOTAL_PASOS }, (_, i) => <div key={i} style={{ height: 4, borderRadius: 2, background: i < paso ? 'var(--lime)' : 'var(--line)' }} />)}
             </div>
             <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>{paso}/{TOTAL_PASOS}</span>
+            {onYaTengoCuenta && (
+              <button type="button" onClick={onYaTengoCuenta} className="flex-shrink-0 rounded-full px-3 text-[12px] font-bold" style={{ height: 32, background: 'var(--card)', color: 'var(--lime)' }}>
+                Ya tengo cuenta
+              </button>
+            )}
           </div>
         )}
         {/* El scroll va en este contenedor y el contenido en un hijo propio:
@@ -539,7 +544,7 @@ export default function OnboardingGuiado({ inicial, onCompletar, onSaltar, onSal
   }
 
   return (
-    <MarcoOnb paso={paso >= 1 ? paso : null} onAtras={paso >= 1 ? atras : undefined} pie={pie}>
+    <MarcoOnb paso={paso >= 1 ? paso : null} onAtras={paso >= 1 ? atras : undefined} onYaTengoCuenta={onSalirInicio} pie={pie}>
       {contenido}
     </MarcoOnb>
   )

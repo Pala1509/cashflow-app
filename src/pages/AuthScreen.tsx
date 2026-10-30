@@ -146,6 +146,7 @@ export default function AuthScreen() {
         <MarcoOnb
           paso={7}
           onAtras={() => { setMode('registro'); setError(null) }}
+          onYaTengoCuenta={() => { setMode('login'); setError(null) }}
           pie={
             <>
               <BotonOnb type="submit" disabled={!listo || loading}>{loading ? t('auth_un_momento') : 'Crear mi cuenta'}</BotonOnb>
