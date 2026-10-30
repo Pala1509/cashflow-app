@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Camera, User, Lock, Bell, DollarSign, Grid3x3, Landmark,
-  Languages, Download, ShieldCheck, FileText, HelpCircle, Info, LogOut, ChevronRight, Sparkles, Heart, CircleCheck, Compass, Sun, Moon, Trash2, AlertTriangle, Star, Mic,
+  Languages, Download, ShieldCheck, FileText, HelpCircle, Info, LogOut, ChevronRight, Sparkles, Heart, CircleCheck, Compass, Sun, Moon, Trash2, AlertTriangle, Star, Mic, Zap,
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useFinanzas } from '../hooks/useFinanzas'
@@ -92,6 +92,7 @@ export default function Perfil() {
           <Row icon={<Grid3x3 size={16} />} label={t('perfil_categorias')} onClick={() => navigate('/perfil/categorias')} />
           <Row icon={<Star size={16} />} label={t('perfil_frecuentes')} onClick={() => navigate('/perfil/frecuentes')} />
           {siriDisponible() && <Row icon={<Mic size={16} />} label={t('perfil_siri')} onClick={() => navigate('/perfil/siri')} />}
+          {siriDisponible() && <Row icon={<Zap size={16} />} label="Pagos con Apple Pay" onClick={() => navigate('/perfil/apple-pay')} />}
           <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '1px solid var(--line)' }}>
             <div className="flex items-center gap-3">
               <span style={{ color: 'var(--text-2)', width: 20 }}>{tema === 'light' ? <Sun size={16} /> : <Moon size={16} />}</span>

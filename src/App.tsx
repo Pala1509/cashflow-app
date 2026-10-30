@@ -27,6 +27,7 @@ import Categorias from './pages/Categorias'
 import Bancos from './pages/Bancos'
 import Frecuentes from './pages/Frecuentes'
 import Siri from './pages/Siri'
+import PagosApplePay from './pages/PagosApplePay'
 import ExportarDatos from './pages/ExportarDatos'
 import CashFlowPro from './pages/CashFlowPro'
 import { Ayuda, Privacidad, Terminos, AcercaDe, Notificaciones } from './pages/InfoScreens'
@@ -155,6 +156,7 @@ function Routed() {
         <Route path="perfil/categorias" element={<Categorias />} />
         <Route path="perfil/frecuentes" element={<Frecuentes />} />
         <Route path="perfil/siri" element={<Siri />} />
+        <Route path="perfil/apple-pay" element={<PagosApplePay />} />
         <Route path="perfil/bancos" element={<Bancos />} />
         <Route path="perfil/exportar" element={<ExportarDatos />} />
         <Route path="perfil/pro" element={<CashFlowPro />} />

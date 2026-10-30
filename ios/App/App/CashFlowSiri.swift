@@ -235,6 +235,74 @@ struct AnotarMovimientoIntent: AppIntent {
     }
 }
 
+// MARK: - Pagos con Apple Pay (automatización de Wallet)
+//
+// "Registrar pago" se usa dentro de una automatización de Atajos: Wallet →
+// "Al realizar un pago sin contacto con mi tarjeta". Atajos le pasa el
+// comercio, el importe y la tarjeta; la Edge Function pago-wallet crea el
+// gasto (cuenta según la tarjeta, categoría según el comercio, sin
+// duplicados) y aquí solo se muestra la notificación. Nunca lanza error:
+// si algo falla, avisa con una notificación para no romper la automatización.
+
+private let urlPagoWallet = URL(string: "https://vnlblvrsdypbxgendchl.supabase.co/functions/v1/pago-wallet")!
+
+@available(iOS 16.0, *)
+struct RegistrarPagoIntent: AppIntent {
+    static var title: LocalizedStringResource = "Registrar pago"
+    static var description = IntentDescription("Anota en CashFlow un pago hecho con Apple Pay. Úsalo en una automatización de Wallet.")
+    static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Comercio", description: "Entrada del atajo → Comercio")
+    var comercio: String
+
+    @Parameter(title: "Importe", description: "Entrada del atajo → Importe")
+    var importe: String?
+
+    @Parameter(title: "Tarjeta", description: "Entrada del atajo → Tarjeta")
+    var tarjeta: String?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Registrar pago en \(\.$comercio) por \(\.$importe) con \(\.$tarjeta)")
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard let token = UserDefaults.standard.string(forKey: llaveToken), !token.isEmpty else {
+            await mostrarNotificacion(titulo: "Pago sin anotar", cuerpo: "Abre CashFlow una vez para conectar los pagos con Apple Pay.")
+            return .result()
+        }
+        var req = URLRequest(url: urlPagoWallet)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(token, forHTTPHeaderField: "x-siri-token")
+        var body: [String: Any] = ["comercio": comercio]
+        if let importe, !importe.isEmpty { body["importe"] = importe }
+        if let tarjeta, !tarjeta.isEmpty { body["tarjeta"] = tarjeta }
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 20
+        let sesion = URLSession(configuration: config)
+        defer { sesion.finishTasksAndInvalidate() }
+
+        var data: Data?
+        for intento in 0..<2 {
+            do { (data, _) = try await sesion.data(for: req); break }
+            catch { if intento == 0 { try? await Task.sleep(nanoseconds: 800_000_000) } }
+        }
+        guard let data, let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            await mostrarNotificacion(titulo: "Pago sin anotar", cuerpo: "No hubo conexión. Anota \(comercio) en CashFlow.")
+            return .result()
+        }
+        if json["duplicado"] as? Bool == true { return .result() }
+        if let notif = json["notificacion"] as? [String: Any] {
+            await mostrarNotificacion(titulo: (notif["titulo"] as? String) ?? "Gasto anotado", cuerpo: (notif["cuerpo"] as? String) ?? "")
+        } else {
+            await mostrarNotificacion(titulo: json["necesitaMonto"] as? Bool == true ? "¿Cuánto fue?" : "Pago sin anotar", cuerpo: (json["mensaje"] as? String) ?? "Ábrelo en CashFlow.")
+        }
+        return .result()
+    }
+}
+
 // MARK: - Frases de Siri
 
 @available(iOS 16.0, *)
