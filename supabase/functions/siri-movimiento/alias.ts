@@ -1,17 +1,17 @@
 // Alias de cuentas para "Anotar con Siri" / "Anotar con voz" (CashFlow).
 //
 // El dictado de Siri y de Google escribe los nombres de los bancos
-// colombianos de mil formas: "Nequi" llega como "Neki", "Nicky", "Nizcy";
-// "Nu Bank" como "Nubank", "New Bank"… Aquí se llevan todas esas variantes
-// a un nombre canónico, tanto en lo que dijo el usuario como en los nombres
-// de sus cuentas, para que coincidan. Si aun así nada coincide y la
-// respuesta es corta ("¿Cómo pagaste?" → "nisky"), se busca la cuenta que
-// más se parezca al oído (comparación fonética + distancia de edición).
+// colombianos de mil formas: "Nequi" llega como "Neki", "Nicky", "Nizcy",
+// "Nike"; "Nu Bank" como "Nubank", "New Bank"… Aquí se llevan todas esas
+// variantes a un nombre canónico, tanto en lo que dijo el usuario como en
+// los nombres de sus cuentas, para que coincidan. Si aun así nada coincide
+// y la respuesta es corta ("¿Cómo pagaste?" → "nisky"), se busca la cuenta
+// que más se parezca al oído (comparación fonética + distancia de edición).
 
 import { normalizar } from './parser.ts'
 
 const ALIAS: Array<[string, string[]]> = [
-  ['nequi', ['nequi', 'neki', 'neky', 'nekki', 'nekis', 'nequis', 'neqi', 'nequy', 'nequie', 'nicky', 'niky', 'niki', 'nikki', 'nizcy', 'nizky', 'nisky', 'niskie', 'nezky', 'necky', 'neckie', 'next', 'nexy']],
+  ['nequi', ['nequi', 'neki', 'neky', 'nekki', 'nekis', 'nequis', 'neqi', 'nequy', 'nequie', 'nicky', 'niky', 'niki', 'nikki', 'nizcy', 'nizky', 'nisky', 'niskie', 'nezky', 'necky', 'neckie', 'next', 'nexy', 'nike', 'naiki', 'naike', 'neiki', 'ne ki', 'ne qui', 'nekí', 'enequi', 'en equi', 'nek', 'neck', 'nekey', 'nikey']],
   ['nu', ['nu bank', 'nubank', 'nu banc', 'nubanc', 'nu banco', 'new bank', 'newbank', 'new banc', 'nu card', 'new card', 'nu']],
   ['bancolombia', ['banco colombia', 'bancocolombia', 'banco de colombia', 'bancolombia', 'bancol']],
   ['daviplata', ['davi plata', 'daviplata', 'david plata', 'davidplata']],
@@ -33,6 +33,7 @@ export function variantesDe(nombresCuenta: string[]): string[] {
 
 const REGLAS: Array<[RegExp, string]> = ALIAS.map(([canon, variantes]) => {
   const alt = [...variantes]
+    .map((v) => normalizar(v))
     .sort((a, b) => b.length - a.length)
     .map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('|')
@@ -77,12 +78,13 @@ function distancia(a: string, b: string): number {
 }
 
 /**
- * Cuenta que más se parece al oído a una respuesta corta. Devuelve null si
- * ninguna se parece lo suficiente o si hay empate entre cuentas distintas.
+ * Cuentas que más se parecen al oído a una respuesta corta (todas las que
+ * empatan en el mejor puntaje). Vacío si ninguna se parece lo suficiente o
+ * si la mejor no se distingue de otra cuenta con nombre distinto.
  */
-export function masParecida<T extends { id: string; nombre: string; banco: string | null }>(texto: string, cuentas: T[]): T | null {
+export function masParecidas<T extends { id: string; nombre: string; banco: string | null }>(texto: string, cuentas: T[]): T[] {
   const dicho = fonetica(canonizar(texto))
-  if (dicho.length < 2) return null
+  if (dicho.length < 2) return []
   const puntajes = cuentas.map((c) => {
     const claves = new Set<string>()
     const nombre = canonizar(c.nombre)
@@ -96,8 +98,17 @@ export function masParecida<T extends { id: string; nombre: string; banco: strin
     }
     return { c, r: mejor }
   }).sort((a, b) => a.r - b.r)
-  const [primero, segundo] = puntajes
-  if (!primero || primero.r > 0.5) return null
-  if (segundo && segundo.r - primero.r < 0.15) return null
-  return primero.c
+  const primero = puntajes[0]
+  if (!primero || primero.r > 0.5) return []
+  const empatadas = puntajes.filter((x) => x.r - primero.r < 0.15).map((x) => x.c)
+  // Varias empatadas: solo sirve si todas son del mismo banco (Nequi y la
+  // tarjeta Nequi); quien llama decide entre ellas.
+  const bancos = new Set(empatadas.map((c) => (c.banco ? canonizar(c.banco) : canonizar(c.nombre))))
+  return bancos.size === 1 ? empatadas : []
+}
+
+/** La única cuenta que más se parece al oído, o null. */
+export function masParecida<T extends { id: string; nombre: string; banco: string | null }>(texto: string, cuentas: T[]): T | null {
+  const r = masParecidas(texto, cuentas)
+  return r.length === 1 ? r[0] : null
 }

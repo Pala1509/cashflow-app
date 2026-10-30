@@ -27,7 +27,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { normalizar, parsearFrase } from './parser.ts'
-import { canonizar, masParecida, variantesDe } from './alias.ts'
+import { canonizar, masParecidas, variantesDe } from './alias.ts'
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false },
@@ -164,7 +164,13 @@ function resolverCuenta(texto: string, cuentas: Cuenta[]): Cuenta | null {
   if (parcial.length === 1) return parcial[0]
   // Respuesta corta que el dictado escribió raro ("nisky", "lulu banc"):
   // la cuenta que más se parezca al oído.
-  if (n.split(' ').length <= 3) return masParecida(n, universo)
+  if (n.split(' ').length <= 3) {
+    const parecidas = masParecidas(n, universo)
+    if (parecidas.length === 1) return parecidas[0]
+    // Empate entre cuentas del mismo banco (Nequi y T. Nequi): la que no es tarjeta.
+    const noTarjeta = parecidas.filter((c) => !c.tipo.startsWith('tarjeta'))
+    if (noTarjeta.length === 1) return noTarjeta[0]
+  }
   return null
 }
 
@@ -192,7 +198,7 @@ function candidatasDe(texto: string, cuentas: Cuenta[]): Cuenta[] {
 }
 
 function listarCuentas(cuentas: Cuenta[]): string {
-  const nombres = cuentas.slice(0, 6).map((c) => c.nombre.trim())
+  const nombres = cuentas.slice(0, 8).map((c) => c.nombre.trim())
   if (nombres.length <= 1) return nombres.join('')
   return `${nombres.slice(0, -1).join(', ')} o ${nombres[nombres.length - 1]}`
 }
@@ -253,6 +259,7 @@ Deno.serve(async (req) => {
   if (!cuenta && body.metodo) {
     cuenta = resolverCuenta(body.metodo, usables) ?? undefined
     if (!cuenta) {
+      console.log('metodo sin cuenta:', JSON.stringify(body.metodo))
       return json({
         ok: false,
         necesitaCuenta: true,
