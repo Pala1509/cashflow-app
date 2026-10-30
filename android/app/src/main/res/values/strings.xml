@@ -7,7 +7,6 @@
     <string name="widget_voz_descripcion">Anota un gasto con tu voz sin abrir la app</string>
     <string name="widget_pequeno_descripcion">Tu saldo y un botón para anotar gastos</string>
     <string name="widget_mediano_descripcion">Tu saldo, el mes y botones para anotar ingresos y gastos</string>
-    <string name="lanzador_voz">Anotar gasto</string>
     <string name="atajo_voz_corto">Anotar con voz</string>
     <string name="atajo_voz_largo">Anotar un movimiento con voz</string>
     <string name="atajo_gasto_corto">Gasto con voz</string>

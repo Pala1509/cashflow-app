@@ -64,22 +64,24 @@ public class CashFlowWidgetLargeProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_ingresos_mes, prefs.getString(PREF_INGRESOS_MES, "—"));
         views.setTextViewText(R.id.widget_egresos_mes, prefs.getString(PREF_EGRESOS_MES, "—"));
 
-        Intent ingresoIntent = new Intent(context, QuickAddActivity.class);
-        ingresoIntent.putExtra("cashflow_widget_action", "ingreso");
-        ingresoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent ingresoPending = PendingIntent.getActivity(
-                context, 4, ingresoIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Igual que en iPhone: los botones abren la app completa directo en
+        // "Nuevo movimiento" con el tipo elegido, usando el enlace
+        // cashflow://nuevo?tipo=… que ya entiende useWidgetLaunch.ts
+        // (getLaunchUrl con la app cerrada, appUrlOpen si ya estaba abierta).
+        PendingIntent ingresoPending = abrirNuevo(context, "ingreso", 4);
+        PendingIntent egresoPending = abrirNuevo(context, "egreso", 5);
         views.setOnClickPendingIntent(R.id.widget_btn_ingreso, ingresoPending);
-
-        Intent egresoIntent = new Intent(context, QuickAddActivity.class);
-        egresoIntent.putExtra("cashflow_widget_action", "egreso");
-        egresoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent egresoPending = PendingIntent.getActivity(
-                context, 5, egresoIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_btn_egreso, egresoPending);
         // El resto del widget también abre "Nuevo gasto" (como en iPhone).
         views.setOnClickPendingIntent(R.id.widget_root, egresoPending);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
+    }
+
+    private static PendingIntent abrirNuevo(Context context, String tipo, int requestCode) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("cashflow://nuevo?tipo=" + tipo), context, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(context, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }

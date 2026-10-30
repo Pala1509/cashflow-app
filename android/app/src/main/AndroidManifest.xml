@@ -35,24 +35,6 @@
             android:noHistory="false"
             android:exported="true" />
 
-        <!-- Segundo ícono en el cajón de apps: "Anotar gasto". Abre directo el
-        micrófono (VozActivity). Sirve para que Bixby ("Comandos rápidos" →
-        Abrir app) o el doble toque del botón lateral de Samsung lo lancen,
-        ya que esos solo saben abrir apps, no accesos directos. -->
-        <activity-alias
-            android:name=".AnotarGastoLauncher"
-            android:targetActivity=".VozActivity"
-            android:label="@string/lanzador_voz"
-            android:icon="@mipmap/ic_launcher"
-            android:roundIcon="@mipmap/ic_launcher_round"
-            android:taskAffinity=""
-            android:excludeFromRecents="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
 
         <!-- Ventanita flotante de "Agregar rápido" — Activity aparte de
         MainActivity a propósito (taskAffinity distinto), para que abrir esto
@@ -74,32 +56,7 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Widget de pantalla de inicio: balance + botones rápidos de Ingreso/Egreso -->
-        <receiver
-            android:name=".CashFlowWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/cashflow_widget_info" />
-        </receiver>
-
-        <!-- Widget pequeño (1x1): solo el micrófono para anotar con voz -->
-        <receiver
-            android:name=".CashFlowVozWidgetProvider"
-            android:label="@string/atajo_voz_corto"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/cashflow_widget_voz_info" />
-        </receiver>
-
-        <!-- Widget grande: balance + botones + últimos movimientos -->
+        <!-- Único widget: igual al mediano de iPhone (saldo, botones, este mes) -->
         <receiver
             android:name=".CashFlowWidgetLargeProvider"
             android:exported="false">
