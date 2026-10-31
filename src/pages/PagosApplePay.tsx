@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, CreditCard, Zap, ExternalLink } from 'lucide-react'
+import { ArrowLeft, CreditCard, Zap } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useFinanzas } from '../hooks/useFinanzas'
 import { supabase } from '../lib/supabase'
 import { siriActivado, activarSiri } from '../lib/siri'
+import GuiaAtajoApplePay from '../components/GuiaAtajoApplePay'
 
 // Perfil → Pagos con Apple Pay. Explica cómo crear (una sola vez) la
 // automatización de Atajos que anota sola cada compra con Apple Pay, usando
@@ -14,14 +15,8 @@ import { siriActivado, activarSiri } from '../lib/siri'
 
 interface TarjetaWallet { id: string; tarjeta: string; cuenta_id: string | null; ultimo_uso: string | null }
 
-// Paso a paso. (Un enlace de iCloud no sirve: iOS importa solo la acción,
-// sin el disparador de Wallet, así que la automatización se arma a mano.)
-const PASOS: { titulo: string; detalle: string }[] = [
-  { titulo: 'Abre Atajos y crea una automatización', detalle: 'Toca + y en el buscador escribe "Wallet". Escoge Wallet: "Al realizar un pago sin contacto con mi tarjeta". Queda "Cuando se use Cualquier tarjeta" (o escoge solo las tuyas, como LuloBank o Nu).' },
-  { titulo: 'Déjalo automático', detalle: 'Toca la flechita junto a "Cualquier tarjeta": deja Automatización prendido, Confirmar antes de ejecutar apagado y apaga Notificar (CashFlow ya te avisa).' },
-  { titulo: 'Agrega la acción de CashFlow', detalle: 'Abajo en Buscar escribe "CashFlow" y toca Registrar pago. Queda: "Registrar pago en Comercio por Importe con Tarjeta".' },
-  { titulo: 'Conecta los datos del pago', detalle: 'Toca Comercio → escoge el botón azul Transacción → tócalo otra vez → Comercio. Repite: Importe → Transacción → Cantidad. Tarjeta → Transacción → Tarjeta o pase. Toca ✕ y luego ‹ para guardar.' },
-]
+// El paso a paso visual vive en GuiaAtajoApplePay. (Un enlace de iCloud no
+// sirve: iOS importa solo la acción, sin el disparador de Wallet.)
 
 export default function PagosApplePay() {
   const navigate = useNavigate()
@@ -73,21 +68,7 @@ export default function PagosApplePay() {
           </div>
 
           <div className="mb-2 mt-6 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>Cómo activarlo (una sola vez)</div>
-          <div className="flex flex-col gap-2.5">
-            {PASOS.map((p, i) => (
-              <div key={i} className="flex gap-3 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--line)' }}>
-                <span className="flex flex-shrink-0 items-center justify-center text-[13px] font-bold" style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--lime)', color: 'var(--lime-text)' }}>{i + 1}</span>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[14.5px] font-semibold" style={{ color: 'var(--text-1)' }}>{p.titulo}</span>
-                  <span className="text-[13px] leading-relaxed" style={{ color: 'var(--text-2)' }}>{p.detalle}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <a href="shortcuts://" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold" style={{ height: 52, background: 'var(--lime)', color: 'var(--lime-text)' }}>
-            Abrir Atajos <ExternalLink size={16} />
-          </a>
+          <GuiaAtajoApplePay />
 
           <div className="mb-2 mt-7 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>Tus tarjetas de Wallet</div>
           {tarjetas.length === 0 ? (
