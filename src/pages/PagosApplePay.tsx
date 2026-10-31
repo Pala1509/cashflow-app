@@ -14,12 +14,8 @@ import { siriActivado, activarSiri } from '../lib/siri'
 
 interface TarjetaWallet { id: string; tarjeta: string; cuenta_id: string | null; ultimo_uso: string | null }
 
-// Enlace de iCloud del atajo ya armado (disparador de Wallet + Registrar
-// pago con Comercio, Cantidad y Tarjeta o pase). Si iOS lo importa completo,
-// la persona solo toca "Agregar atajo". Si cambia, se reemplaza aquí.
-const ENLACE_ATAJO = 'https://www.icloud.com/shortcuts/0d9abe5f5c63492fa785fc572d456a33'
-
-// Paso a paso manual por si el enlace no trae el disparador de Wallet.
+// Paso a paso. (Un enlace de iCloud no sirve: iOS importa solo la acción,
+// sin el disparador de Wallet, así que la automatización se arma a mano.)
 const PASOS: { titulo: string; detalle: string }[] = [
   { titulo: 'Abre Atajos y crea una automatización', detalle: 'Toca + y en el buscador escribe "Wallet". Escoge Wallet: "Al realizar un pago sin contacto con mi tarjeta". Queda "Cuando se use Cualquier tarjeta" (o escoge solo las tuyas, como LuloBank o Nu).' },
   { titulo: 'Déjalo automático', detalle: 'Toca la flechita junto a "Cualquier tarjeta": deja Automatización prendido, Confirmar antes de ejecutar apagado y apaga Notificar (CashFlow ya te avisa).' },
@@ -76,14 +72,7 @@ export default function PagosApplePay() {
             {conectado === false && <div className="text-[12.5px]" style={{ color: 'var(--coral)' }}>Conéctate a internet para activar los pagos automáticos.</div>}
           </div>
 
-          <a href={ENLACE_ATAJO} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl text-[16px] font-bold" style={{ height: 56, background: 'var(--lime)', color: 'var(--lime-text)' }}>
-            <Zap size={18} /> Agregar en un toque
-          </a>
-          <div className="mt-2 text-center text-[12.5px] leading-relaxed" style={{ color: 'var(--text-2)' }}>
-            Se abre Atajos con todo listo: toca <b style={{ color: 'var(--text-1)' }}>Agregar atajo</b> y escoge tus tarjetas si te lo pide.
-          </div>
-
-          <div className="mb-2 mt-7 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>¿No funcionó? Hazlo a mano</div>
+          <div className="mb-2 mt-6 text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-2)' }}>Cómo activarlo (una sola vez)</div>
           <div className="flex flex-col gap-2.5">
             {PASOS.map((p, i) => (
               <div key={i} className="flex gap-3 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--line)' }}>
@@ -96,7 +85,7 @@ export default function PagosApplePay() {
             ))}
           </div>
 
-          <a href="shortcuts://" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold" style={{ height: 52, background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--text-1)' }}>
+          <a href="shortcuts://" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold" style={{ height: 52, background: 'var(--lime)', color: 'var(--lime-text)' }}>
             Abrir Atajos <ExternalLink size={16} />
           </a>
 
